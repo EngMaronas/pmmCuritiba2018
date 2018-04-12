@@ -20,7 +20,7 @@ PROGMEM static const RH_RF95::ModemConfig MODEM_CONFIG_TABLE[] =
     { 0x92,   0x74,    0x00}, // Bw500Cr45Sf128
     { 0x48,   0x94,    0x00}, // Bw31_25Cr48Sf512
     { 0x78,   0xc4,    0x00}, // Bw125Cr48Sf4096
-    
+
 };
 
 RH_RF95::RH_RF95(uint8_t slaveSelectPin, uint8_t interruptPin, RHGenericSPI& spi)
@@ -47,7 +47,7 @@ bool RH_RF95::init()
     //Serial.println("Attach Interrupt completed");
 
     // No way to check the device type :-(
-    
+
     // Set sleep mode, so we can also set LORA mode:
     spiWrite(RH_RF95_REG_01_OP_MODE, RH_RF95_MODE_SLEEP | RH_RF95_LONG_RANGE_MODE);
     delay(10); // Wait for sleep mode to take over from say, CAD
@@ -61,12 +61,12 @@ bool RH_RF95::init()
     // Add by Adrien van den Bossche <vandenbo@univ-tlse2.fr> for Teensy
     // ARM M4 requires the below. else pin interrupt doesn't work properly.
     // On all other platforms, its innocuous, belt and braces
-    pinMode(_interruptPin, INPUT); 
+    pinMode(_interruptPin, INPUT);
 
     // Set up interrupt handler
     // Since there are a limited number of interrupt glue functions isr*() available,
     // we can only support a limited number of devices simultaneously
-    // ON some devices, notably most Arduinos, the interrupt pin passed in is actuallt the 
+    // ON some devices, notably most Arduinos, the interrupt pin passed in is actuallt the
     // interrupt number. You have to figure out the interruptnumber-to-interruptpin mapping
     // yourself based on knwledge of what Arduino board you are running on.
     if (_myInterruptIndex == 0xff)
@@ -84,7 +84,7 @@ bool RH_RF95::init()
 	attachInterrupt(interruptNumber, isr1, RISING);
     else if (_myInterruptIndex == 2)
 	attachInterrupt(interruptNumber, isr2, RISING);
-    else 
+    else
     {
         //Serial.println("Interrupt vector too many vectors");
         return false; // Too many devices, not enough interrupt vectors
@@ -119,7 +119,7 @@ bool RH_RF95::init()
 
 // C++ level interrupt handler for this instance
 // LORA is unusual in that it has several interrupt lines, and not a single, combined one.
-// On MiniWirelessLoRa, only one of the several interrupt lines (DI0) from the RFM95 is usefuly 
+// On MiniWirelessLoRa, only one of the several interrupt lines (DI0) from the RFM95 is usefuly
 // connnected to the processor.
 // We use this to get RxDone and TxDone interrupts
 void RH_RF95::handleInterrupt()
@@ -148,16 +148,16 @@ void RH_RF95::handleInterrupt()
 	_lastRssi = spiRead(RH_RF95_REG_1A_PKT_RSSI_VALUE) - 137;
 
 	// We have received a message.
-	validateRxBuf(); 
+	validateRxBuf();
 	if (_rxBufValid)
-	    setModeIdle(); // Got one 
+	    setModeIdle(); // Got one
     }
     else if (_mode == RHModeTx && irq_flags & RH_RF95_TX_DONE)
     {
 	_txGood++;
 	setModeIdle();
     }
-    
+
     spiWrite(RH_RF95_REG_12_IRQ_FLAGS, 0xff); // Clear all IRQ flags
 }
 
@@ -257,10 +257,9 @@ bool RH_RF95::send(const uint8_t* data, uint8_t len)
     return true;
 }
 
-bool RH_RF95::sendArrayOfPointersOf4Bytes(const uint8_t** data, uint8_t len)
+/// By Henrique Bruno, UFRJ Minerva Rockets. Send an array of pointers to 4 bytes variables. Do typecast on the variables before, to uint8_t.
+bool RH_RF95::sendArrayOfPointersOf4Bytes(const uint8_t** data, uint8_t number4BytesVariables)
 {
-    if (len > RH_RF95_MAX_MESSAGE_LEN)
-    return false;
 
     waitPacketSent(); // Make sure we dont interrupt an outgoing message
     setModeIdle();
@@ -273,8 +272,8 @@ bool RH_RF95::sendArrayOfPointersOf4Bytes(const uint8_t** data, uint8_t len)
     spiWrite(RH_RF95_REG_00_FIFO, _txHeaderId);
     spiWrite(RH_RF95_REG_00_FIFO, _txHeaderFlags);
     // The message data
-    spiBurstWrite(RH_RF95_REG_00_FIFO, data, len);
-    spiWrite(RH_RF95_REG_22_PAYLOAD_LENGTH, len + RH_RF95_HEADER_LEN);
+    spiBurstWrite(RH_RF95_REG_00_FIFO, data, number4BytesVariables);
+    spiWrite(RH_RF95_REG_22_PAYLOAD_LENGTH, (number4BytesVariables * 4) + RH_RF95_HEADER_LEN);
 
     setModeTx(); // Start the transmitter
     // when Tx is done, interruptHandler will fire and radio mode will return to STANDBY
@@ -422,4 +421,3 @@ void RH_RF95::setPreambleLength(uint16_t bytes)
     spiWrite(RH_RF95_REG_20_PREAMBLE_MSB, bytes >> 8);
     spiWrite(RH_RF95_REG_21_PREAMBLE_LSB, bytes & 0xff);
 }
-

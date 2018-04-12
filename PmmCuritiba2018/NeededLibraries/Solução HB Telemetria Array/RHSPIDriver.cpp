@@ -6,7 +6,7 @@
 #include <RHSPIDriver.h>
 
 RHSPIDriver::RHSPIDriver(uint8_t slaveSelectPin, RHGenericSPI& spi)
-    : 
+    :
     _spi(spi),
     _slaveSelectPin(slaveSelectPin)
 {
@@ -111,8 +111,13 @@ uint8_t RHSPIDriver::spiBurstWriteArrayOfPointersOf4Bytes(uint8_t reg, const uin
 #endif
     digitalWrite(_slaveSelectPin, LOW);
     status = _spi.transfer(reg | RH_SPI_WRITE_MASK); // Send the start address with the write mask on
-    while (len--)
-	_spi.transfer(**src++);
+    while (number4BytesVariables--)
+    {
+	     _spi.transfer(**src++);
+       _spi.transfer(**src++);
+       _spi.transfer(**src++);
+       _spi.transfer(**src++);
+    }
     digitalWrite(_slaveSelectPin, HIGH);
 #if defined(SPI_HAS_TRANSACTION)
     SPI.endTransaction();
