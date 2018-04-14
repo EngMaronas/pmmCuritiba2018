@@ -78,7 +78,7 @@ public:
     uint8_t           spiBurstWrite(uint8_t reg, const uint8_t* src, uint8_t len);
 
     /* By Henrique Bruno - UFRJ Minerva Rockets*/
-    uint8_t           spiBurstWriteArrayOfPointersOf4Bytes(uint8_t reg, uint8_t** src, uint8_t number4BytesVariables);
+    void              spiBurstWriteArrayOfPointersOf4Bytes(uint8_t reg, uint8_t** src, uint8_t number4BytesVariables);
     /// Set or change the pin to be used for SPI slave select.
     /// This can be called at any time to change the
     /// pin that will be used for slave select in subsquent SPI operations.
