@@ -46,6 +46,7 @@
 #include <RH_RF95.h>
 #include <SD.h>
 #include <SPI.h>
+#include <PMM_CONST.h>
 
 //---------------Definições e variáveis Lora-------------------//
 #define PIN_RFM95_CS 15
@@ -54,9 +55,11 @@
 #define RF95_FREQ 915.0
 #define RF_WORDS_IN_PACKET 17
 #define RF_BYTES_IN_PACKET (RF_WORDS_IN_PACKET * 4)
+#define RF_INIT_MAX_TRIES 10
 
 const char RF_VALIDATION_HEADER[4] = {'V', 'R', 'N', 'M'}; // Make sure that there is no NULL-terminator char.
 float rf_packetTime, rf_packetID;
+
 RH_RF95 rf95(PIN_RFM95_CS, PIN_RFM95_INT);
 
 //---------------Variáveis GPS Venus---------------//
@@ -68,7 +71,7 @@ char gps_stringBuffer[20];
 //-------------- Definições Buzzer ----------------//
 #define BUZZER_ACTIVATE 1
 #define BUZZER_PIN  2
-#define BUZZER_FREQ 100
+#define BUZZER_OK_FREQ 100
 unsigned long buzzer_lastTime = 0;
 bool buzzer_status = false;
 
@@ -80,13 +83,17 @@ const int chipSelect = BUILTIN_SDCARD;
 IMU_s imu_struct;
 IMU_s *imu_pstruct = &imu_struct;
 
-//--------------Variáveis para Debug---------------//
-bool sdLog = 1; //Prints the values of IMU_s in SD card
+//--------------Error variables---------------//
+#define ERRORS_ARRAY_SIZE 20
+int sdIsWorking = 1; //Prints the values of IMU_s in SD card
+int rfIsWorking = 1;
+int isThereAnyError = 0;
+uint8_t errorsArray[ERRORS_ARRAY_SIZE];
 
 //---------------Definições dos LEDS---------------//
 #define PIN_LED_AVIONIC 3 // Red
 #define PIN_LED_RECOVERY 1 // Blue
-#define PIN_LED_SD 4 // Green
+#define PIN_LED_ALL_OK_AND_RF 4 // Green
 #define LED_AVIONIC_INTERVAL 100 // Will keep blinking at this interval
 int led_avionicState = LOW;
 unsigned long led_avionicPreviousMillis = 0;
@@ -143,15 +150,17 @@ buffer[fieldPos] = '\0';
 
 void setup()
 {
+    int generalCounter;
     #if DEBUG_SERIAL
         Serial.begin(9600); //Initialize Serial Port at 9600 baudrate.
     #endif
     Serial4.begin(9600); //Initialize GPS port at 9600 baudrate.
     pinMode(PIN_LED_RECOVERY, OUTPUT);
+    pinMode(PIN_LED_AVIONIC, OUTPUT);
+    pinMode(PIN_LED_ALL_OK_AND_RF, OUTPUT);
 
 //---------------Setup LORA---------------//
     pinMode(PIN_RFM95_RST, OUTPUT);
-    pinMode(PIN_LED_AVIONIC, OUTPUT);
     digitalWrite(PIN_RFM95_RST, HIGH);
 
     delay(100);
@@ -160,7 +169,8 @@ void setup()
     digitalWrite(PIN_RFM95_RST, HIGH);
     delay(10);
 
-    while (!rf95.init())
+    generalCounter = 0;
+    while (!rf95.init() and (generalCounter++ < RF_INIT_MAX_TRIES))
     {
         #if DEBUG_SERIAL
             Serial.println("LoRa nao inicializou");
@@ -177,26 +187,24 @@ void setup()
             Serial.println("setFrequency falhou!");
         #endif
 
-        while (1);
     }
 
     rf95.setTxPower(23, false);
 //END of Setup LORA-----------------------//
 
 //---------------Setup Modulo SD---------------//
-    pinMode(PIN_LED_SD, OUTPUT);
     if (!SD.begin(chipSelect))
     {
         #if DEBUG_SERIAL
             Serial.println("Inicialização do modulo SD falhou!");
         #endif
-        sdLog = 0;
+        sdIsWorking = 0;
     }
     #if DEBUG_SERIAL
         Serial.println("Inicialização do modulo SD concluída.");
     #endif
 
-    if (sdLog)
+    if (sdIsWorking)
     {
         fileLog = SD.open("DADOSMVP.txt", FILE_WRITE);
         if (fileLog)
@@ -261,7 +269,7 @@ void loop()
     if (((abs(imu_struct.acelerometro[0]) < 1) && (abs(imu_struct.acelerometro[1]) < 1) && (abs(imu_struct.acelerometro[2]) < 1)))
     {
         digitalWrite(PIN_LED_RECOVERY, HIGH);
-        if (sdLog)
+        if (sdIsWorking)
         {
             fileLog = SD.open("DADOSMVP.txt", FILE_WRITE);
             if (fileLog)
@@ -336,10 +344,9 @@ void loop()
 
 
 //---------------SD Logging Code---------------//
-    if (sdLog)
+    if (sdIsWorking)
     {
         fileLog = SD.open("DADOSMVP.txt", FILE_WRITE);
-        digitalWrite(PIN_LED_SD, LOW);
         if (fileLog)
         {
             fileLog.print(millis());fileLog.print(" ,");
@@ -360,7 +367,6 @@ void loop()
             fileLog.close();
 
         }
-        digitalWrite(PIN_LED_SD, HIGH);
     }
 //---------------Code for serial debugging---------------//
     #if DEBUG_SERIAL
@@ -386,7 +392,7 @@ void loop()
 
 //----------------Buzzer------------------------//
     #if BUZZER_ACTIVATE
-        if ((millis() - buzzer_lastTime > 1000 * (1 / BUZZER_FREQ)))
+        if ((millis() - buzzer_lastTime > 1000 * (1 / BUZZER_OK_FREQ)))
         {
             digitalWrite(BUZZER_PIN, (buzzer_status = !buzzer_status));
             buzzer_lastTime = millis();
