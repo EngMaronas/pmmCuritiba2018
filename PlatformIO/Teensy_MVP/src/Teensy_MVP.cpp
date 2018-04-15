@@ -13,7 +13,6 @@
  *      IMU_s->double barometro[3]; Where positions 0, 1 and 2 in the array are pressure(in Pa), altitude(in Meters) and temperature(in Celsius) respectively.
  *  Contact : marcelomaronas at poli.ufrj.br
  *  For more codes : github.com/engmaronas
-
  * Conexões
  * IMU:
  * Teensy 3.6 (3.3V) ----------------> VDD (Pin 3)
@@ -45,7 +44,6 @@
 #include <GY80TEENSY.h>
 #include <RH_RF95.h>
 #include <SD.h>
-#include <SPI.h>
 #include <PMM_CONST.h>
 
 //---------------Definições e variáveis Lora-------------------//
@@ -71,9 +69,7 @@ char gps_stringBuffer[20];
 //-------------- Definições Buzzer ----------------//
 #define BUZZER_ACTIVATE 1
 #define BUZZER_PIN  2
-#define BUZZER_OK_FREQ 100
 unsigned long buzzer_lastTime = 0;
-bool buzzer_status = false;
 
 //---------------Variáveis módulo SD---------------//
 File fileLog;
