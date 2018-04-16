@@ -682,6 +682,7 @@ public:
         sendArrayOfPointersOf4Bytes(array, SIZE)
     */
     virtual bool    sendArrayOfPointersOf4Bytes(uint8_t** data, uint8_t number4BytesVariables);
+    
     /// Sets the length of the preamble
     /// in bytes.
     /// Caution: this should be set to the same

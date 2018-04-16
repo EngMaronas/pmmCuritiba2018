@@ -5,11 +5,9 @@
 
 class PmmErrorsAndSignals
 {
-    private:
-        RH_RF95 rf95;
-        errorsArray[
-    public:
-        addError(ERROR
+private:
+    // errorsArray[
+public:
 };
 
 

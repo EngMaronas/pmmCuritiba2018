@@ -44,7 +44,8 @@
 #include <GY80TEENSY.h>
 #include <RH_RF95.h>
 #include <SD.h>
-#include <PMM_CONST.h>
+#include <pmmConsts.h>
+#include <pmmGeneralFunctions.h>
 
 //--------------- Errors? --------------------//
 int sdIsWorking = 1, rfIsWorking = 1,
@@ -56,7 +57,6 @@ unsigned long packetTimeMs = 0, packetIDul = 0;
 RH_RF95 rf95(PIN_RFM95_CS, PIN_RFM95_INT);
 
 //--------------- GPS Venus Vars---------------//
-#define GPS_SENTENCE_SIZE 80
 char gps_sentence[GPS_SENTENCE_SIZE], gps_stringBuffer[20];;
 float gps_lat, gps_lon;
 
@@ -92,25 +92,6 @@ uint8_t *rf_radioPacket[RF_BYTES_IN_PACKET] =
     (uint8_t*) & imu_struct.barometro[1], // altitude
     (uint8_t*) & imu_struct.barometro[2]  // temperature
 };
-
-//---------------Função GPS Venus---------------//
-void getField(char* buffer, int index)
-{
-    int sentencePos = 0, fieldPos = 0, commaCount = 0;
-    while (sentencePos++ < GPS_SENTENCE_SIZE)
-    {
-        if (gps_sentence[sentencePos] == ',')
-        {
-            commaCount ++;
-            sentencePos ++;
-        }
-        if (commaCount == index)
-            buffer[fieldPos++] = gps_sentence[sentencePos];
-    }
-    buffer[fieldPos] = '\0';
-}
-
-
 
 void setup()
 {
@@ -282,7 +263,7 @@ void loop()
             {
                 gps_sentence[i] = '\0';
                 i = 0;
-                getField(gps_stringBuffer, 0);
+                gps_getField(gps_sentence, gps_stringBuffer, 0);
                 if (strcmp(gps_stringBuffer, "$GPRMC") == 0)
                 {
                     float gps_lat, gps_lon;
@@ -291,28 +272,28 @@ void loop()
                         Serial.print("Lat: ");
                     #endif
 
-                    getField(gps_stringBuffer, 3);
+                    gps_getField(gps_sentence, gps_stringBuffer, 3);
                     gps_lat = String(gps_stringBuffer).toFloat();
 
                     #if DEBUG_SERIAL
                         Serial.print(gps_stringBuffer);
                     #endif
 
-                    getField(gps_stringBuffer, 4);
+                    gps_getField(gps_sentence, gps_stringBuffer, 4);
                     c_lat = gps_stringBuffer[0];
                     #if DEBUG_SERIAL
                         Serial.print(gps_stringBuffer);
                         Serial.print(" Long: ");
                     #endif
 
-                    getField(gps_stringBuffer, 5);
+                    gps_getField(gps_sentence, gps_stringBuffer, 5);
                     gps_lon = String(gps_stringBuffer).toFloat();
 
                     #if DEBUG_SERIAL
                         Serial.print(gps_stringBuffer);
                     #endif
 
-                    getField(gps_stringBuffer, 6);
+                    gps_getField(gps_sentence, gps_stringBuffer, 6);
                     c_lon = gps_stringBuffer[0];
 
                     #if DEBUG_SERIAL
