@@ -46,53 +46,27 @@
 #include <SD.h>
 #include <PMM_CONST.h>
 
-//---------------Definições e variáveis Lora-------------------//
-#define PIN_RFM95_CS 15
-#define PIN_RFM95_RST 17
-#define PIN_RFM95_INT 16
-#define RF95_FREQ 915.0
-#define RF_WORDS_IN_PACKET 17
-#define RF_BYTES_IN_PACKET (RF_WORDS_IN_PACKET * 4)
-#define RF_INIT_MAX_TRIES 10
+//--------------- Errors? --------------------//
+int sdIsWorking = 1, rfIsWorking = 1,
+    accelIsWorking = 1, gyroIsWorking = 1, magnIsWorking = 1, baroIsWorking = 1;
 
-const char RF_VALIDATION_HEADER[4] = {'V', 'R', 'N', 'M'}; // Make sure that there is no NULL-terminator char.
-float rf_packetTime, rf_packetID;
-
+//--------------- LoRa vars ------------------//
+float packetTimeFloatS = 0, packetIDfloat = 0;
+unsigned long packetTimeMs = 0, packetIDul = 0;
 RH_RF95 rf95(PIN_RFM95_CS, PIN_RFM95_INT);
 
-//---------------Variáveis GPS Venus---------------//
+//--------------- GPS Venus Vars---------------//
 #define GPS_SENTENCE_SIZE 80
-char gps_sentence[GPS_SENTENCE_SIZE];
+char gps_sentence[GPS_SENTENCE_SIZE], gps_stringBuffer[20];;
 float gps_lat, gps_lon;
-char gps_stringBuffer[20];
 
-//-------------- Definições Buzzer ----------------//
-#define BUZZER_ACTIVATE 1
-#define BUZZER_PIN  2
-unsigned long buzzer_lastTime = 0;
-
-//---------------Variáveis módulo SD---------------//
+//--------------- SD vars---------------//
 File fileLog;
-const int chipSelect = BUILTIN_SDCARD;
+const int chipSelect = BUILTIN_SDCARD; // Change if different SD card
 
 //--------------Declaração do Struct---------------//
 IMU_s imu_struct;
 IMU_s *imu_pstruct = &imu_struct;
-
-//--------------Error variables---------------//
-#define ERRORS_ARRAY_SIZE 20
-int sdIsWorking = 1; //Prints the values of IMU_s in SD card
-int rfIsWorking = 1;
-int isThereAnyError = 0;
-uint8_t errorsArray[ERRORS_ARRAY_SIZE];
-
-//---------------Definições dos LEDS---------------//
-#define PIN_LED_AVIONIC 3 // Red
-#define PIN_LED_RECOVERY 1 // Blue
-#define PIN_LED_ALL_OK_AND_RF 4 // Green
-#define LED_AVIONIC_INTERVAL 100 // Will keep blinking at this interval
-int led_avionicState = LOW;
-unsigned long led_avionicPreviousMillis = 0;
 
 //-----------Variáveis de recuperação---------------//
 float lastAltitude;
@@ -101,8 +75,8 @@ float lastAltitude;
 uint8_t *rf_radioPacket[RF_BYTES_IN_PACKET] =
 {
     (uint8_t*) & RF_VALIDATION_HEADER,
-    (uint8_t*) & rf_packetID,
-    (uint8_t*) & rf_packetTime,
+    (uint8_t*) & packetIDfloat,
+    (uint8_t*) & packetTimeFloatS,
     (uint8_t*) & gps_lat,
     (uint8_t*) & gps_lon,
     (uint8_t*) & imu_struct.magnetometro[0],
@@ -122,10 +96,8 @@ uint8_t *rf_radioPacket[RF_BYTES_IN_PACKET] =
 //---------------Função GPS Venus---------------//
 void getField(char* buffer, int index)
 {
-    int sentencePos = 0;
-    int fieldPos = 0;
-    int commaCount = 0;
-    while (sentencePos < GPS_SENTENCE_SIZE)
+    int sentencePos = 0, fieldPos = 0, commaCount = 0;
+    while (sentencePos++ < GPS_SENTENCE_SIZE)
     {
         if (gps_sentence[sentencePos] == ',')
         {
@@ -133,13 +105,9 @@ void getField(char* buffer, int index)
             sentencePos ++;
         }
         if (commaCount == index)
-        {
-            buffer[fieldPos] = gps_sentence[sentencePos];
-            fieldPos ++;
-        }
-        sentencePos ++;
+            buffer[fieldPos++] = gps_sentence[sentencePos];
     }
-buffer[fieldPos] = '\0';
+    buffer[fieldPos] = '\0';
 }
 
 
@@ -166,26 +134,41 @@ void setup()
     delay(10);
 
     generalCounter = 0;
-    while (!rf95.init() and (generalCounter++ < RF_INIT_MAX_TRIES))
+    while (!(rfIsWorking = rf95.init()) and (generalCounter++ < RF_INIT_MAX_TRIES))
     {
         #if DEBUG_SERIAL
             Serial.println("LoRa nao inicializou");
             Serial.println("Realizando nova tentativa...");
         #endif
     }
-    #if DEBUG_SERIAL
-        Serial.println("LoRa inicializado!");
-    #endif
 
-    if (!rf95.setFrequency(RF95_FREQ))
+    if (!rfIsWorking)
     {
-        #if DEBUG_SERIAL
-            Serial.println("setFrequency falhou!");
-        #endif
-
+        ERROR;
     }
 
-    rf95.setTxPower(23, false);
+    else // if RF is working
+    {
+        if (!(rfIsWorking = rf95.setFrequency(RF95_FREQ)))
+        {
+            #if DEBUG_SERIAL
+                Serial.println("setFrequency falhou!");
+            #endif
+        }
+
+        if (!rfIsWorking) // Fail at setFrequency
+        {
+            ERROR;
+        }
+
+        else // if RF is working
+        {
+            rf95.setTxPower(23, false);
+            #if DEBUG_SERIAL
+                Serial.println("LoRa inicializado!");
+            #endif
+        }
+    }
 //END of Setup LORA-----------------------//
 
 //---------------Setup Modulo SD---------------//
@@ -206,11 +189,12 @@ void setup()
         if (fileLog)
         {
             fileLog.println("sep =, "); //This line handles Excel CSV configuration.
-            fileLog.println("Tempo(ms), Pressão (hPa), Altitude (m), Temperatura (°C), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s), Lat, Long");
+            fileLog.println("PacketID, Time(ms), Latitude, Longitude, MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), Pressure (hPa), Altitude (m), Temperature (C)");
         }
         else
         {
-            digitalWrite(PIN_LED_RECOVERY, HIGH);
+            sdIsWorking = 0;
+            //ERROR HERE!
         }
         fileLog.close();
     }
@@ -221,15 +205,26 @@ void setup()
     #if DEBUG_SERIAL
         Serial.println("Minerva Rockets - UFRJ");
         Serial.println("sep =, "); //This line handles Excel CSV configuration.
-        Serial.println("Tempo(ms), Pressão (hPa), Altitude (m), Temperatura (°C), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s), Lat, Long");
+        Serial.println("PacketID, Time(ms), Latitude, Longitude, MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), Pressure (hPa), Altitude (m), Temperature (C)");
     #endif
 
 //-------------- IMU's Init ----------------------------//
-    InitBMP(); //Initialize BMP module
-    InitAcel(); //Initialize Accelerometer module
-    InitGyro(); //Initialize Gyroscope module
-    InitMag(); //Initialize Magnetometer module
-    //digitalWrite(PIN_LED_AVIONIC, HIGH);
+    if (InitBMP())
+    {
+        baroIsWorking = 0;
+    }
+    if (InitAcel())
+    {
+        accelIsWorking = 0;
+    }
+    if (InitGyro())
+    {
+        gyroIsWorking = 0;
+    }
+    if (InitMag())
+    {
+        magnIsWorking = 0;
+    }
 
 //------------Setup Buzzer -----------------------------//
     pinMode(BUZZER_PIN,OUTPUT);
@@ -237,28 +232,20 @@ void setup()
 //END of Setup  ---------------------------------------------------------------------------------------------------------//
 }
 
-
-
-
-
-
-
-
-
 void loop()
 {
-
-    if(millis() - led_avionicPreviousMillis > LED_AVIONIC_INTERVAL)
-    {
-        digitalWrite(PIN_LED_AVIONIC, (led_avionicState = !led_avionicState)); // set the LED with the led_avionicState of the variable:
-        led_avionicPreviousMillis = millis(); // save the last time you blinked the LED
-    }
+    packetTimeMs = millis();                  // Packet time, in miliseconds. (unsigned long)
+    packetTimeFloatS = packetTimeMs / 1000.0; // Packet time, in seconds. (float)
 
     //---------------IMU structure definition---------------//
-    GetBMP(imu_pstruct); //Fills the BMP085 module information into the IMU structure
-    GetAcel(imu_pstruct); //Fills the Accelerometer module information into the IMU structure
-    GetGyro(imu_pstruct); //Fills the Gyroscope module information into the IMU structure
-    GetMag(imu_pstruct); //Fills the Magnetometer module information into the IMU structure
+    if (baroIsWorking)
+        GetBMP(imu_pstruct); //Fills the BMP085 module information into the IMU structure
+    if (accelIsWorking)
+        GetAcel(imu_pstruct); //Fills the Accelerometer module information into the IMU structure
+    if (gyroIsWorking)
+        GetGyro(imu_pstruct); //Fills the Gyroscope module information into the IMU structure
+    if (magnIsWorking)
+        GetMag(imu_pstruct); //Fills the Magnetometer module information into the IMU structure
 
 
     //---------------Recuperação---------------//
@@ -337,66 +324,57 @@ void loop()
         }
     }
 
-
-
 //---------------SD Logging Code---------------//
     if (sdIsWorking)
     {
         fileLog = SD.open("DADOSMVP.txt", FILE_WRITE);
         if (fileLog)
         {
-            fileLog.print(millis());fileLog.print(" ,");
-            fileLog.print(imu_struct.barometro[0]);fileLog.print(" ,");
-            fileLog.print(imu_struct.barometro[1]);fileLog.print(" ,");
-            fileLog.print(imu_struct.barometro[2]);fileLog.print(" ,");
-            fileLog.print(imu_struct.acelerometro[0]);fileLog.print(" ,");
-            fileLog.print(imu_struct.acelerometro[1]);fileLog.print(" ,");
-            fileLog.print(imu_struct.acelerometro[2]);fileLog.print(" ,");
-            fileLog.print(imu_struct.giroscopio[0]);fileLog.print(" ,");
-            fileLog.print(imu_struct.giroscopio[1]);fileLog.print(" ,");
-            fileLog.print(imu_struct.giroscopio[2]);fileLog.print(" ,");
-            fileLog.print(imu_struct.magnetometro[0]);fileLog.print(" ,");
-            fileLog.print(imu_struct.magnetometro[1]);fileLog.print(" ,");
-            fileLog.print(imu_struct.magnetometro[2]);fileLog.print(" ,");
-            fileLog.print(gps_lat);fileLog.print("");
-            fileLog.print(gps_lon);fileLog.print("");
+            fileLog.print(packetIDul); fileLog.print(" ,");
+            fileLog.print(packetTimeMs); fileLog.print(" ,");
+            fileLog.print(gps_lat); fileLog.print(" ,");
+            fileLog.print(gps_lon); fileLog.print(" ,");
+            fileLog.print(imu_struct.magnetometro[0]); fileLog.print(" ,");
+            fileLog.print(imu_struct.magnetometro[1]); fileLog.print(" ,");
+            fileLog.print(imu_struct.magnetometro[2]); fileLog.print(" ,");
+            fileLog.print(imu_struct.acelerometro[0]); fileLog.print(" ,");
+            fileLog.print(imu_struct.acelerometro[1]); fileLog.print(" ,");
+            fileLog.print(imu_struct.acelerometro[2]); fileLog.print(" ,");
+            fileLog.print(imu_struct.giroscopio[0]); fileLog.print(" ,");
+            fileLog.print(imu_struct.giroscopio[1]); fileLog.print(" ,");
+            fileLog.print(imu_struct.giroscopio[2]); fileLog.print(" ,");
+            fileLog.print(imu_struct.barometro[0]); fileLog.print(" ,");
+            fileLog.print(imu_struct.barometro[1]); fileLog.print(" ,");
+            fileLog.print(imu_struct.barometro[2]); fileLog.print(" ,");
             fileLog.close();
-
         }
     }
+
 //---------------Code for serial debugging---------------//
     #if DEBUG_SERIAL
-        Serial.print(millis());Serial.print(" ,");
-        Serial.print(imu_struct.barometro[0]);Serial.print(" ,");
-        Serial.print(imu_struct.barometro[1]);Serial.print(" ,");
-        Serial.print(imu_struct.barometro[2]);Serial.print(" ,");
-        Serial.print(imu_struct.acelerometro[0]);Serial.print(" ,");
-        Serial.print(imu_struct.acelerometro[1]);Serial.print(" ,");
-        Serial.print(imu_struct.acelerometro[2]);Serial.print(" ,");
-        Serial.print(imu_struct.giroscopio[0]);Serial.print(" ,");
-        Serial.print(imu_struct.giroscopio[1]);Serial.print(" ,");
-        Serial.print(imu_struct.giroscopio[2]);Serial.print(" ,");
-        Serial.print(imu_struct.magnetometro[0]);Serial.print(" ,");
-        Serial.print(imu_struct.magnetometro[1]);Serial.print(" ,");
-        Serial.println(imu_struct.magnetometro[2]);
-        // Serial.print(gps_lat);Serial.print("");
-        // Serial.print(gps_lon);Serial.print("");
-        // Serial.println(c_lon);
+        Serial.print(packetIDul); Serial.print(" ,");
+        Serial.print(packetTimeMs); Serial.print(" ,");
+        Serial.print(gps_lat); Serial.print(" ,");
+        Serial.print(gps_lon); Serial.print(" ,");
+        Serial.print(imu_struct.magnetometro[0]); Serial.print(" ,");
+        Serial.print(imu_struct.magnetometro[1]); Serial.print(" ,");
+        Serial.print(imu_struct.magnetometro[2]); Serial.print(" ,");
+        Serial.print(imu_struct.acelerometro[0]); Serial.print(" ,");
+        Serial.print(imu_struct.acelerometro[1]); Serial.print(" ,");
+        Serial.print(imu_struct.acelerometro[2]); Serial.print(" ,");
+        Serial.print(imu_struct.giroscopio[0]); Serial.print(" ,");
+        Serial.print(imu_struct.giroscopio[1]); Serial.print(" ,");
+        Serial.print(imu_struct.giroscopio[2]); Serial.print(" ,");
+        Serial.print(imu_struct.barometro[0]); Serial.print(" ,");
+        Serial.print(imu_struct.barometro[1]); Serial.print(" ,");
+        Serial.print(imu_struct.barometro[2]); Serial.print(" ,");
     #endif
+
+//-------------- Send RF package ---------------//
+    if (rfIsWorking)
+        rf95.sendArrayOfPointersOf4Bytes(rf_radioPacket, RF_WORDS_IN_PACKET);
+
     lastAltitude = imu_struct.barometro[2];
-
-
-//----------------Buzzer------------------------//
-    #if BUZZER_ACTIVATE
-        if ((millis() - buzzer_lastTime > 1000 * (1 / BUZZER_OK_FREQ)))
-        {
-            digitalWrite(BUZZER_PIN, (buzzer_status = !buzzer_status));
-            buzzer_lastTime = millis();
-        }
-    #endif
-
-//---------------Envio de pacotes do LORA---------------//
-    rf_packetTime = millis()/1000; // Packet time, in seconds.
-    rf_packetID ++;
-    rf95.sendArrayOfPointersOf4Bytes(rf_radioPacket, RF_WORDS_IN_PACKET);
+    packetIDfloat ++;
+    packetIDul ++;
 }
