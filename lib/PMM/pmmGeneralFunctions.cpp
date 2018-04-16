@@ -1,6 +1,7 @@
 #include <pmmConsts.h>
 
 //-------------- GPS Venus Function ---------------//
+
 void gps_getField(char* originalGpsSentence, char* buffer, int index)
 {
     int sentencePos = 0, fieldPos = 0, commaCount = 0;

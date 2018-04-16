@@ -100,9 +100,6 @@ void setup()
         Serial.begin(9600); //Initialize Serial Port at 9600 baudrate.
     #endif
     Serial4.begin(9600); //Initialize GPS port at 9600 baudrate.
-    pinMode(PIN_LED_RECOVERY, OUTPUT);
-    pinMode(PIN_LED_AVIONIC, OUTPUT);
-    pinMode(PIN_LED_ALL_OK_AND_RF, OUTPUT);
 
 //---------------Setup LORA---------------//
     pinMode(PIN_RFM95_RST, OUTPUT);
@@ -206,12 +203,10 @@ void setup()
     {
         magnIsWorking = 0;
     }
-
-//------------Setup Buzzer -----------------------------//
-    pinMode(BUZZER_PIN,OUTPUT);
-
 //END of Setup  ---------------------------------------------------------------------------------------------------------//
 }
+
+
 
 void loop()
 {
@@ -266,7 +261,6 @@ void loop()
                 gps_getField(gps_sentence, gps_stringBuffer, 0);
                 if (strcmp(gps_stringBuffer, "$GPRMC") == 0)
                 {
-                    float gps_lat, gps_lon;
 
                     #if DEBUG_SERIAL
                         Serial.print("Lat: ");
@@ -274,30 +268,23 @@ void loop()
 
                     gps_getField(gps_sentence, gps_stringBuffer, 3);
                     gps_lat = String(gps_stringBuffer).toFloat();
-
+                    gps_getField(gps_sentence, gps_stringBuffer, 4);
+                    if (gps_stringBuffer[0] == 'S')
+                        gps_lat = - gps_lat;
                     #if DEBUG_SERIAL
-                        Serial.print(gps_stringBuffer);
+                        Serial.print(gps_lat);
                     #endif
 
-                    gps_getField(gps_sentence, gps_stringBuffer, 4);
-                    c_lat = gps_stringBuffer[0];
                     #if DEBUG_SERIAL
-                        Serial.print(gps_stringBuffer);
                         Serial.print(" Long: ");
                     #endif
-
                     gps_getField(gps_sentence, gps_stringBuffer, 5);
                     gps_lon = String(gps_stringBuffer).toFloat();
-
-                    #if DEBUG_SERIAL
-                        Serial.print(gps_stringBuffer);
-                    #endif
-
                     gps_getField(gps_sentence, gps_stringBuffer, 6);
-                    c_lon = gps_stringBuffer[0];
-
+                    if (gps_stringBuffer[0] == 'W')
+                        gps_lon = - gps_lon;
                     #if DEBUG_SERIAL
-                        Serial.println(gps_stringBuffer);
+                        Serial.print(gps_lon);
                     #endif
                 }
                 break;

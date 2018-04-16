@@ -13,7 +13,7 @@ const char RF_VALIDATION_HEADER[4] = {'V', 'R', 'N', 'M'}; // Make sure that the
 const char RF_VALIDATION_HEADER_EXTRA[4] = {'M', 'N', 'E', 'X'};
 
 //--------------- LEDS ---------------//
-#define PIN_LED_AVIONIC 3 // Red
+#define PIN_LED_ERRORS 3 // Red
 #define PIN_LED_RECOVERY 1 // Blue
 #define PIN_LED_ALL_OK_AND_RF 4 // Green
 
@@ -40,8 +40,10 @@ typedef enum {
 
 // --------------- SD ----------------//
 #define FILENAME_MAX_LENGTH 20
+
 const char FILENAME_BASE_PREFIX[] = "PMM_DATA_";
-const char FILENAME_EXTRA_SUFFIX[] = "_extra"
+const char FILENAME_EXTRA_SUFFIX[] = "_extra";
+const char FILENAME_EXTENSION[] = ".csv";
 
 
 #endif

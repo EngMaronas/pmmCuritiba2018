@@ -1,7 +1,7 @@
 #include <pmmConsts.h>
 #include <cstring>
 #include <RH_RF95.h>
-
+#include <SD.h>
 //--------------Error variables---------------//
 #define ERRORS_ARRAY_SIZE 20
 #define ERROR_STRING_LENGTH 80
@@ -56,11 +56,11 @@ class PmmErrorsAndSignals
 private:
     int actualNumberOfErrors = 0;
     pmmErrorType errorsArray[ERRORS_ARRAY_SIZE];
-    char errorString [ERROR_STRING_LENGTH], char filenameExtra[FILENAME_MAX_LENGTH];
+    char errorString[ERROR_STRING_LENGTH], filenameExtra[FILENAME_MAX_LENGTH];
     RH_RF95 *rf95Ptr;
-    FILE fileExtra;
+    File fileExtra;
 
-    char* returnPmmErrorString(pmmErrorType errorId)
+    const char* returnPmmErrorString(pmmErrorType errorId)
     {
         if (errorId < 0 or errorId >= ERRORS_AMOUNT)
             return pmmErrorString[ERROR_PROGRAMMING];
@@ -70,7 +70,7 @@ private:
 
     void writeToSd(char *stringToWrite)
     {
-        fileExtra = SD.open("test.txt", FILE_WRITE);
+        fileExtra = SD.open(filenameExtra, FILE_WRITE);
         if (fileExtra)
         {
             fileExtra.println(stringToWrite);
@@ -78,23 +78,34 @@ private:
         }
     }
 
+    void
 public:
     PmmErrorsAndSignals(RH_RF95 *rf95Ptr, uint8_t fileID)
     {
-        snprintf(filenameExtra, FILENAME_MAX_LENGTH, "%s%u%s", FILENAME_BASE_PREFIX, fileID, FILENAME_EXTRA_SUFFIX);
+        snprintf(filenameExtra, FILENAME_MAX_LENGTH, "%s%u%s%s", FILENAME_BASE_PREFIX, fileID, FILENAME_EXTRA_SUFFIX, FILENAME_EXTENSION);
+        pinMode(PIN_LED_RECOVERY, OUTPUT);
+        pinMode(PIN_LED_ERRORS, OUTPUT);
+        pinMode(PIN_LED_ALL_OK_AND_RF, OUTPUT);
+        pinMode(BUZZER_PIN,OUTPUT);
+
+        digitalWrite(PIN_LED_RECOVERY, LOW);
+        digitalWrite(PIN_LED_ERRORS, LOW);
+        digitalWrite(PIN_LED_ALL_OK_AND_RF, LOW);
+        digitalWrite(BUZZER_PIN, LOW);
     }
     void updateLedsAndBuzzer()
     {
+
     }
     // [1090][763.32s] ERROR 3: SD
 
     void reportError(pmmErrorType errorID, unsigned long timeInMs, unsigned long packetID, int sdIsWorking, int rfIsWorking)
     {
 
-        snprintf(errorString, ERROR_STRING_LENGTH, "[%lu][%.3f] ERROR %i: %s", errorID, timeInMs / 1000.0, errorID, returnPmmErrorString(errorID));
+        snprintf(errorString, ERROR_STRING_LENGTH, "[%lu][%.3f] ERROR %i: %s", packetID, timeInMs / 1000.0, errorID, returnPmmErrorString(errorID));
         if (actualNumberOfErrors < ERRORS_ARRAY_SIZE)
         {
             errorsArray[actualNumberOfErrors++] = errorID;
         }
     }
-}
+};

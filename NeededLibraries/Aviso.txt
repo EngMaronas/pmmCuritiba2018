@@ -1,1 +1,0 @@
-Todas as bibliotecas necessarias ja se encontram dentro do PlatformIO. Apenas abra o projeto com o PlatformIO e nao sera necessario adicionar nenhuma biblioteca.
