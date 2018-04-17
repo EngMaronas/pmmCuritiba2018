@@ -2,11 +2,7 @@
 #include <cstring>
 #include <RH_RF95.h>
 #include <SD.h>
-#include <PmmErrorsAndSignals.h>
-
-//--------------Error variables---------------//
-#define ERRORS_ARRAY_SIZE 20
-#define ERROR_STRING_LENGTH 80
+#include <pmmErrorsAndSignals.h>
 
 //----------------Buzzer------------------------//
 #if BUZZER_ACTIVATED
@@ -61,9 +57,10 @@ const char* PmmErrorsAndSignals::returnPmmErrorString(pmmErrorType errorId)
         return pmmErrorString[errorId];
 }
 
-void PmmErrorsAndSignals::writeToSd(char *stringToWrite)
+void PmmErrorsAndSignals::writeToSd(char *stringToWrite, char *filename)
 {
-    mFileExtra = SD.open(filenameExtra, FILE_WRITE);
+    File fileExtra;
+    fileExtra = SD.open(filename, FILE_WRITE);
     if (fileExtra)
     {
         fileExtra.println(stringToWrite);
@@ -71,16 +68,17 @@ void PmmErrorsAndSignals::writeToSd(char *stringToWrite)
     }
 }
 
+// Constructor
 PmmErrorsAndSignals::PmmErrorsAndSignals(RH_RF95 *rf95Ptr, uint16_t fileID)
 {
-    this->rf95Ptr = rf95Ptr;
-    actualNumberOfErrors = 0;
-    systemWasOk = 1;
-    signalIsOn = signalStarterCounter = signalActualErrorIndex = signalActualErrorCounter = 0;
-    millisNextSignalState = 0;
+    // Init variables values
+    mRf95Ptr = rf95Ptr;
+    mActualNumberOfErrors = 0;
+    snprintf(mFilenameExtra, FILENAME_MAX_LENGTH, "%s%u%s%s", FILENAME_BASE_PREFIX, fileID, FILENAME_EXTRA_SUFFIX, FILENAME_EXTENSION); // Declaration of the filename of the extra log
 
+    mSystemWasOk = 1; mSignalIsOn = mSignalStarterCounter = mSignalActualErrorIndex = mSignalActualErrorCounter = 0;
+    mMillisNextSignalState = 0;
 
-    snprintf(filenameExtra, FILENAME_MAX_LENGTH, "%s%u%s%s", FILENAME_BASE_PREFIX, fileID, FILENAME_EXTRA_SUFFIX, FILENAME_EXTENSION);
     pinMode(PIN_LED_RECOVERY, OUTPUT);
     pinMode(PIN_LED_ERRORS, OUTPUT);
     pinMode(PIN_LED_ALL_OK_AND_RF, OUTPUT);
@@ -94,55 +92,54 @@ PmmErrorsAndSignals::PmmErrorsAndSignals(RH_RF95 *rf95Ptr, uint16_t fileID)
 
 void PmmErrorsAndSignals::updateLedsAndBuzzer()
 {
-    if (millis() >= millisNextSignalState)
+    if (millis() >= mMillisNextSignalState)
     {
-        if (systemWasOk)
+        if (mSystemWasOk)
         {
-            if (signalIsOn)
-            {
-                digitalWrite(BUZZER_PIN, LOW); // Turn Off
-                millisNextSignalState = millis() + 500;
-                if (actualNumberOfErrors)
-                    systemWasOk = 0; // So the signal will have a low state of >500ms before the error signal
-            }
-            else // Signal is Off
+            if (!mSignalIsOn) // If signal not On
             {
                 digitalWrite(BUZZER_PIN, HIGH); // Turn On
-                millisNextSignalState = millis() + 1000;
+                mMillisNextSignalState = millis() + 1000;
+            }
+            else // So signal is Off
+            {
+                digitalWrite(BUZZER_PIN, LOW); // Turn Off
+                mMillisNextSignalState = millis() + 500;
+                if (mActualNumberOfErrors)
+                    mSystemWasOk = 0; // So the signal will have a low state of >500ms before the error signal
             }
 
-
+        }
         else // System has an error
-            if (signalIsOn)
-            {
-                digitalWrite(BUZZER_PIN, LOW); // Turn Off
-
-                if (signalStarterCounter)
-                {
-                    signalStarterCounter--;
-                    millisNextSignalState = millis() + 10;
-                }
-                if (!signalStarterCounter) // If the signal starter is 0, start the error code signal.
-                    millisNextSignalState = millis() + 100;
-                    signalActualErrorCounter = errorsArray[signalActualErrorIndex]
-            }
-            else // Signal is Off
+            if (!mSignalIsOn) // If signal not On
             {
                 digitalWrite(BUZZER_PIN, HIGH); // Turn On
-                if (signalActualErrorCounter)
+                if (!mSignalActualErrorCounter)
                 {
-                    millisNextSignalState = millis() + 100;
-                    signalActualErrorCounter --;
-                    if
+                    if (mSignalActualErrorIndex == 0 and mSignalStarterCounter == 0 and mSignalActualErrorCounter == 0) // mSignalStarterCounter needed to don't keep assigning the value
+                        mSignalStarterCounter = 3; // The first error has 3 short signals before the error code
+                    else if (mSignalActualErrorIndex > 0 and mSignalStarterCounter == 0 and mSignalActualErrorCounter == 0)
+                        mSignalStarterCounter = 2; // The subsequent errors has 2 short beeps before the error code
+                    if (mSignalStarterCounter)
+                        mMillisNextSignalState = millis() + 10; // Make small signals to show the start of an error.
                 }
                 else
                 {
-                    if (signalActualErrorIndex == 0 and signalStarterCounter == 0) // signalStarterCounter needed to don't keep assigning the value
-                        signalStarterCounter = 3; // The first error has 3 short signals before the error code
-                    else if (signalActualErrorIndex > 0 and signalStarterCounter == 0)
-                        signalStarterCounter = 2; // The subsequent errors has 2 short beeps before the error code
-                    if (signalStarterCounter)
-                        millisNextSignalState = millis() + 10; // Make small signals to show the start of an error.
+                    mMillisNextSignalState = millis() + 300;
+                    mSignalActualErrorCounter --;
+            }
+            else // So signal is On
+            {
+                digitalWrite(BUZZER_PIN, LOW); // Turn Off
+                if (mSignalStarterCounter)
+                {
+                    mSignalStarterCounter--;
+                    mMillisNextSignalState = millis() + 10;
+                }
+                if (mSignalStarterCounter == 0) // If the signal starter is 0, start the error code signal.
+                    mMillisNextSignalState = millis() + 100;
+                    mSignalActualErrorCounter = mErrorsArray[mSignalActualErrorIndex];
+
                 }
             }
         }
@@ -152,8 +149,12 @@ void PmmErrorsAndSignals::updateLedsAndBuzzer()
 // [1090][763.32s] ERROR 3: SD
 void PmmErrorsAndSignals::reportError(pmmErrorType errorID, unsigned long timeInMs, unsigned long packetID, int sdIsWorking, int rfIsWorking)
 {
+    char errorString[ERROR_STRING_LENGTH];
     snprintf(errorString, ERROR_STRING_LENGTH, "[%lu][%.3f] ERROR %i: %s", packetID, timeInMs / 1000.0, errorID, returnPmmErrorString(errorID));
-    if (actualNumberOfErrors < ERRORS_ARRAY_SIZE)
-        errorsArray[actualNumberOfErrors++] = errorID;
-
+    if (mActualNumberOfErrors < ERRORS_ARRAY_SIZE)
+        mErrorsArray[mActualNumberOfErrors++] = errorID;
+    if (sdIsWorking)
+        writeToSd(errorString, mFilenameExtra);
+    if (rfIsWorking)
+        mRf95Ptr->send(errorString, strlen(errorString) + 1);
 }
