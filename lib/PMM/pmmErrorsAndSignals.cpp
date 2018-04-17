@@ -2,6 +2,8 @@
 #include <cstring>
 #include <RH_RF95.h>
 #include <SD.h>
+#include <PmmErrorsAndSignals.h>
+
 //--------------Error variables---------------//
 #define ERRORS_ARRAY_SIZE 20
 #define ERROR_STRING_LENGTH 80
@@ -51,61 +53,107 @@ const char *recuperationActivatedString = "Recuperation Activated!";
 // Buzzer is 1s/0.5s if all ok.
 // RED LED = off, is = buzzer if errors found.
 
-class PmmErrorsAndSignals
+const char* PmmErrorsAndSignals::returnPmmErrorString(pmmErrorType errorId)
 {
-private:
-    int actualNumberOfErrors = 0;
-    pmmErrorType errorsArray[ERRORS_ARRAY_SIZE];
-    char errorString[ERROR_STRING_LENGTH], filenameExtra[FILENAME_MAX_LENGTH];
-    RH_RF95 *rf95Ptr;
-    File fileExtra;
+    if (errorId < 0 or errorId >= ERRORS_AMOUNT)
+        return pmmErrorString[ERROR_PROGRAMMING];
+    else
+        return pmmErrorString[errorId];
+}
 
-    const char* returnPmmErrorString(pmmErrorType errorId)
+void PmmErrorsAndSignals::writeToSd(char *stringToWrite)
+{
+    mFileExtra = SD.open(filenameExtra, FILE_WRITE);
+    if (fileExtra)
     {
-        if (errorId < 0 or errorId >= ERRORS_AMOUNT)
-            return pmmErrorString[ERROR_PROGRAMMING];
-        else
-            return pmmErrorString[errorId];
+        fileExtra.println(stringToWrite);
+        fileExtra.close();
     }
+}
 
-    void writeToSd(char *stringToWrite)
+PmmErrorsAndSignals::PmmErrorsAndSignals(RH_RF95 *rf95Ptr, uint16_t fileID)
+{
+    this->rf95Ptr = rf95Ptr;
+    actualNumberOfErrors = 0;
+    systemWasOk = 1;
+    signalIsOn = signalStarterCounter = signalActualErrorIndex = signalActualErrorCounter = 0;
+    millisNextSignalState = 0;
+
+
+    snprintf(filenameExtra, FILENAME_MAX_LENGTH, "%s%u%s%s", FILENAME_BASE_PREFIX, fileID, FILENAME_EXTRA_SUFFIX, FILENAME_EXTENSION);
+    pinMode(PIN_LED_RECOVERY, OUTPUT);
+    pinMode(PIN_LED_ERRORS, OUTPUT);
+    pinMode(PIN_LED_ALL_OK_AND_RF, OUTPUT);
+    pinMode(BUZZER_PIN,OUTPUT);
+
+    digitalWrite(PIN_LED_RECOVERY, LOW);
+    digitalWrite(PIN_LED_ERRORS, LOW);
+    digitalWrite(PIN_LED_ALL_OK_AND_RF, LOW);
+    digitalWrite(BUZZER_PIN, LOW);
+}
+
+void PmmErrorsAndSignals::updateLedsAndBuzzer()
+{
+    if (millis() >= millisNextSignalState)
     {
-        fileExtra = SD.open(filenameExtra, FILE_WRITE);
-        if (fileExtra)
+        if (systemWasOk)
         {
-            fileExtra.println(stringToWrite);
-            fileExtra.close();
+            if (signalIsOn)
+            {
+                digitalWrite(BUZZER_PIN, LOW); // Turn Off
+                millisNextSignalState = millis() + 500;
+                if (actualNumberOfErrors)
+                    systemWasOk = 0; // So the signal will have a low state of >500ms before the error signal
+            }
+            else // Signal is Off
+            {
+                digitalWrite(BUZZER_PIN, HIGH); // Turn On
+                millisNextSignalState = millis() + 1000;
+            }
+
+
+        else // System has an error
+            if (signalIsOn)
+            {
+                digitalWrite(BUZZER_PIN, LOW); // Turn Off
+
+                if (signalStarterCounter)
+                {
+                    signalStarterCounter--;
+                    millisNextSignalState = millis() + 10;
+                }
+                if (!signalStarterCounter) // If the signal starter is 0, start the error code signal.
+                    millisNextSignalState = millis() + 100;
+                    signalActualErrorCounter = errorsArray[signalActualErrorIndex]
+            }
+            else // Signal is Off
+            {
+                digitalWrite(BUZZER_PIN, HIGH); // Turn On
+                if (signalActualErrorCounter)
+                {
+                    millisNextSignalState = millis() + 100;
+                    signalActualErrorCounter --;
+                    if
+                }
+                else
+                {
+                    if (signalActualErrorIndex == 0 and signalStarterCounter == 0) // signalStarterCounter needed to don't keep assigning the value
+                        signalStarterCounter = 3; // The first error has 3 short signals before the error code
+                    else if (signalActualErrorIndex > 0 and signalStarterCounter == 0)
+                        signalStarterCounter = 2; // The subsequent errors has 2 short beeps before the error code
+                    if (signalStarterCounter)
+                        millisNextSignalState = millis() + 10; // Make small signals to show the start of an error.
+                }
+            }
         }
     }
+}
 
-    void
-public:
-    PmmErrorsAndSignals(RH_RF95 *rf95Ptr, uint8_t fileID)
-    {
-        snprintf(filenameExtra, FILENAME_MAX_LENGTH, "%s%u%s%s", FILENAME_BASE_PREFIX, fileID, FILENAME_EXTRA_SUFFIX, FILENAME_EXTENSION);
-        pinMode(PIN_LED_RECOVERY, OUTPUT);
-        pinMode(PIN_LED_ERRORS, OUTPUT);
-        pinMode(PIN_LED_ALL_OK_AND_RF, OUTPUT);
-        pinMode(BUZZER_PIN,OUTPUT);
+// [1090][763.32s] ERROR 3: SD
+void PmmErrorsAndSignals::reportError(pmmErrorType errorID, unsigned long timeInMs, unsigned long packetID, int sdIsWorking, int rfIsWorking)
+{
+    snprintf(errorString, ERROR_STRING_LENGTH, "[%lu][%.3f] ERROR %i: %s", packetID, timeInMs / 1000.0, errorID, returnPmmErrorString(errorID));
+    if (actualNumberOfErrors < ERRORS_ARRAY_SIZE)
+        errorsArray[actualNumberOfErrors++] = errorID;
 
-        digitalWrite(PIN_LED_RECOVERY, LOW);
-        digitalWrite(PIN_LED_ERRORS, LOW);
-        digitalWrite(PIN_LED_ALL_OK_AND_RF, LOW);
-        digitalWrite(BUZZER_PIN, LOW);
-    }
-    void updateLedsAndBuzzer()
-    {
-
-    }
-    // [1090][763.32s] ERROR 3: SD
-
-    void reportError(pmmErrorType errorID, unsigned long timeInMs, unsigned long packetID, int sdIsWorking, int rfIsWorking)
-    {
-
-        snprintf(errorString, ERROR_STRING_LENGTH, "[%lu][%.3f] ERROR %i: %s", packetID, timeInMs / 1000.0, errorID, returnPmmErrorString(errorID));
-        if (actualNumberOfErrors < ERRORS_ARRAY_SIZE)
-        {
-            errorsArray[actualNumberOfErrors++] = errorID;
-        }
-    }
-};
+}

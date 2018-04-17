@@ -59,16 +59,19 @@ RH_RF95 rf95(PIN_RFM95_CS, PIN_RFM95_INT);
 //--------------- GPS Venus Vars---------------//
 char gps_sentence[GPS_SENTENCE_SIZE], gps_stringBuffer[20];;
 float gps_lat, gps_lon;
+int gps_i;
 
-//--------------- SD vars---------------//
+//------------------- SD vars --------------------//
 File fileLog;
+char logFilename[FILENAME_MAX_LENGTH];
 const int chipSelect = BUILTIN_SDCARD; // Change if different SD card
+uint16_t fileID;
 
-//--------------Declaração do Struct---------------//
+//------------ IMU Struct Declaration ------------//
 IMU_s imu_struct;
 IMU_s *imu_pstruct = &imu_struct;
 
-//-----------Variáveis de recuperação---------------//
+//---------------- Recuperation ------------------//
 float lastAltitude;
 
 // An array of pointers. 17 variables of 4 bytes.
@@ -95,6 +98,8 @@ uint8_t *rf_radioPacket[RF_BYTES_IN_PACKET] =
 
 void setup()
 {
+    snprintf(logFilename, FILENAME_MAX_LENGTH, "%s%u%s", FILENAME_BASE_PREFIX, fileID, FILENAME_EXTENSION);
+
     int generalCounter;
     #if DEBUG_SERIAL
         Serial.begin(9600); //Initialize Serial Port at 9600 baudrate.
@@ -163,7 +168,7 @@ void setup()
 
     if (sdIsWorking)
     {
-        fileLog = SD.open("DADOSMVP.txt", FILE_WRITE);
+        fileLog = SD.open("logFilename", FILE_WRITE);
         if (fileLog)
         {
             fileLog.println("sep =, "); //This line handles Excel CSV configuration.
@@ -230,7 +235,7 @@ void loop()
         digitalWrite(PIN_LED_RECOVERY, HIGH);
         if (sdIsWorking)
         {
-            fileLog = SD.open("DADOSMVP.txt", FILE_WRITE);
+            fileLog = SD.open("logFilename", FILE_WRITE);
             if (fileLog)
             {
                 fileLog.print(millis());fileLog.print(" ,");
@@ -242,79 +247,43 @@ void loop()
     }
 
     //---------------GPS Venus---------------//
-
-    static int i = 0;
     if (Serial4.available())
     {
         while (true)
         {
             char ch = Serial4.read();
-            if (ch != '\n' && i < GPS_SENTENCE_SIZE)
+            if (ch != '\n' && gps_i < GPS_SENTENCE_SIZE)
             {
-                gps_sentence[i] = ch;
-                i++;
+                gps_sentence[gps_i] = ch;
+                gps_i++;
             }
             else
             {
-                gps_sentence[i] = '\0';
-                i = 0;
+                gps_sentence[gps_i] = '\0';
+                gps_i = 0;
                 gps_getField(gps_sentence, gps_stringBuffer, 0);
                 if (strcmp(gps_stringBuffer, "$GPRMC") == 0)
                 {
-
-                    #if DEBUG_SERIAL
-                        Serial.print("Lat: ");
-                    #endif
-
                     gps_getField(gps_sentence, gps_stringBuffer, 3);
                     gps_lat = String(gps_stringBuffer).toFloat();
                     gps_getField(gps_sentence, gps_stringBuffer, 4);
                     if (gps_stringBuffer[0] == 'S')
                         gps_lat = - gps_lat;
                     #if DEBUG_SERIAL
-                        Serial.print(gps_lat);
+                        Serial.print("Lat: "); Serial.print(gps_lat);
                     #endif
 
-                    #if DEBUG_SERIAL
-                        Serial.print(" Long: ");
-                    #endif
                     gps_getField(gps_sentence, gps_stringBuffer, 5);
                     gps_lon = String(gps_stringBuffer).toFloat();
                     gps_getField(gps_sentence, gps_stringBuffer, 6);
                     if (gps_stringBuffer[0] == 'W')
                         gps_lon = - gps_lon;
                     #if DEBUG_SERIAL
-                        Serial.print(gps_lon);
+                        Serial.print(" Long: "); Serial.print(gps_lon);
                     #endif
                 }
                 break;
             }
-        }
-    }
-
-//---------------SD Logging Code---------------//
-    if (sdIsWorking)
-    {
-        fileLog = SD.open("DADOSMVP.txt", FILE_WRITE);
-        if (fileLog)
-        {
-            fileLog.print(packetIDul); fileLog.print(" ,");
-            fileLog.print(packetTimeMs); fileLog.print(" ,");
-            fileLog.print(gps_lat); fileLog.print(" ,");
-            fileLog.print(gps_lon); fileLog.print(" ,");
-            fileLog.print(imu_struct.magnetometro[0]); fileLog.print(" ,");
-            fileLog.print(imu_struct.magnetometro[1]); fileLog.print(" ,");
-            fileLog.print(imu_struct.magnetometro[2]); fileLog.print(" ,");
-            fileLog.print(imu_struct.acelerometro[0]); fileLog.print(" ,");
-            fileLog.print(imu_struct.acelerometro[1]); fileLog.print(" ,");
-            fileLog.print(imu_struct.acelerometro[2]); fileLog.print(" ,");
-            fileLog.print(imu_struct.giroscopio[0]); fileLog.print(" ,");
-            fileLog.print(imu_struct.giroscopio[1]); fileLog.print(" ,");
-            fileLog.print(imu_struct.giroscopio[2]); fileLog.print(" ,");
-            fileLog.print(imu_struct.barometro[0]); fileLog.print(" ,");
-            fileLog.print(imu_struct.barometro[1]); fileLog.print(" ,");
-            fileLog.print(imu_struct.barometro[2]); fileLog.print(" ,");
-            fileLog.close();
         }
     }
 
@@ -337,6 +306,33 @@ void loop()
         Serial.print(imu_struct.barometro[1]); Serial.print(" ,");
         Serial.print(imu_struct.barometro[2]); Serial.print(" ,");
     #endif
+
+
+//---------------SD Logging Code---------------//
+    if (sdIsWorking)
+    {
+        fileLog = SD.open("logFilename", FILE_WRITE);
+        if (fileLog)
+        {
+            fileLog.print(packetIDul); fileLog.print(" ,");
+            fileLog.print(packetTimeMs); fileLog.print(" ,");
+            fileLog.print(gps_lat); fileLog.print(" ,");
+            fileLog.print(gps_lon); fileLog.print(" ,");
+            fileLog.print(imu_struct.magnetometro[0]); fileLog.print(" ,");
+            fileLog.print(imu_struct.magnetometro[1]); fileLog.print(" ,");
+            fileLog.print(imu_struct.magnetometro[2]); fileLog.print(" ,");
+            fileLog.print(imu_struct.acelerometro[0]); fileLog.print(" ,");
+            fileLog.print(imu_struct.acelerometro[1]); fileLog.print(" ,");
+            fileLog.print(imu_struct.acelerometro[2]); fileLog.print(" ,");
+            fileLog.print(imu_struct.giroscopio[0]); fileLog.print(" ,");
+            fileLog.print(imu_struct.giroscopio[1]); fileLog.print(" ,");
+            fileLog.print(imu_struct.giroscopio[2]); fileLog.print(" ,");
+            fileLog.print(imu_struct.barometro[0]); fileLog.print(" ,");
+            fileLog.print(imu_struct.barometro[1]); fileLog.print(" ,");
+            fileLog.print(imu_struct.barometro[2]); fileLog.print(" ,");
+            fileLog.close();
+        }
+    }
 
 //-------------- Send RF package ---------------//
     if (rfIsWorking)

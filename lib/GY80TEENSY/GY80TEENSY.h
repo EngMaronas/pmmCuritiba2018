@@ -4,6 +4,9 @@
 // Contact : marcelomaronas at poli.ufrj.br
 // For more codes : github.com/engmaronas
 
+#ifndef GY80TEENSY_h
+#define GY80TEENSY_h
+
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BMP085_U.h>
@@ -37,3 +40,5 @@ int InitMag();
 int InitBMP();
 
 //Functions headers
+
+#endif
