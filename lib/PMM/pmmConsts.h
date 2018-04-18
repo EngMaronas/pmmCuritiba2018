@@ -29,7 +29,8 @@ const char RF_VALIDATION_HEADER_EXTRA[4] = {'M', 'N', 'E', 'X'};
 
 const char FILENAME_BASE_PREFIX[] = "PMM_DATA_";
 const char FILENAME_EXTRA_SUFFIX[] = "_extra";
-const char FILENAME_EXTENSION[] = ".csv";
+const char FILENAME_BASE_EXTENSION[] = ".csv";
+const char FILENAME_EXTRA_EXTENSION[] = ".txt";
 
 
 #endif

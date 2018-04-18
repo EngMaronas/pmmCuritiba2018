@@ -29,17 +29,20 @@ private:
     int mActualNumberOfErrors; // Total errors in the system number
     char mFilenameExtra[FILENAME_MAX_LENGTH]; // Filename of this extra log
 
-    int mSystemWasOk, mSignalIsOn, mSignalStarterCounter, mSignalActualErrorIndex, mSignalActualErrorCounter; // Used updateLedsAndBuzzer
+    int mSystemWasOk, mSignalIsOn, mSignalStarterCounter, mSignalActualErrorIndex, mSignalActualErrorCounter, mIsShortBeepOfSystemWasOk; // Used updateLedsAndBuzzer
     unsigned long mMillisNextSignalState; // Used updateLedsAndBuzzer
 
     // Private functions
     const char* returnPmmErrorString(pmmErrorType errorId);
-    void writeToSd(char *stringToWrite, char *filename);
+    void writelnToSd(char *stringToWrite, char *filename);
 
 public:
-    PmmErrorsAndSignals(RH_RF95 *rf95Ptr, uint16_t fileID);
+    PmmErrorsAndSignals();
+    void init(RH_RF95 *rf95Ptr, uint16_t fileID);
     void updateLedsAndBuzzer();
-    void reportError(pmmErrorType errorID, unsigned long timeInMs, unsigned long packetID, int sdIsWorking, int rfIsWorking);
+    void reportError(pmmErrorType errorID, unsigned long packetID, int sdIsWorking, int rfIsWorking);
+    void reportRecuperation(unsigned long packetID, int sdIsWorking, int rfIsWorking);
+    void blinkRfLED(int state);
 };
 
 #endif

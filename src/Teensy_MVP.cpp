@@ -46,10 +46,13 @@
 #include <SD.h>
 #include <pmmConsts.h>
 #include <pmmGeneralFunctions.h>
+#include <pmmErrorsAndSignals.h>
 
 //--------------- Errors? --------------------//
 int sdIsWorking = 1, rfIsWorking = 1,
     accelIsWorking = 1, gyroIsWorking = 1, magnIsWorking = 1, baroIsWorking = 1;
+
+PmmErrorsAndSignals pmmErrorsAndSignals;
 
 //--------------- LoRa vars ------------------//
 float packetTimeFloatS = 0, packetIDfloat = 0;
@@ -65,7 +68,7 @@ int gps_i;
 File fileLog;
 char logFilename[FILENAME_MAX_LENGTH];
 const int chipSelect = BUILTIN_SDCARD; // Change if different SD card
-uint16_t fileID;
+uint16_t fileID = 0;
 
 //------------ IMU Struct Declaration ------------//
 IMU_s imu_struct;
@@ -98,9 +101,18 @@ uint8_t *rf_radioPacket[RF_BYTES_IN_PACKET] =
 
 void setup()
 {
-    snprintf(logFilename, FILENAME_MAX_LENGTH, "%s%u%s", FILENAME_BASE_PREFIX, fileID, FILENAME_EXTENSION);
+    int hasFoundFileID = 0;
+    int rf_initCounter = 0;
+    while (!hasFoundFileID);
+        snprintf(logFilename, FILENAME_MAX_LENGTH, "%s%02u%s", FILENAME_BASE_PREFIX, fileID, FILENAME_BASE_EXTENSION); // %02u to make the file id at least 2 digits.
+        if (SD.exists(logFilename))
+            fileID++;
+        else
+            hasFoundFileID = 1;
 
-    int generalCounter;
+    pmmErrorsAndSignals.init(&rf95, fileID);
+
+
     #if DEBUG_SERIAL
         Serial.begin(9600); //Initialize Serial Port at 9600 baudrate.
     #endif
@@ -116,19 +128,16 @@ void setup()
     digitalWrite(PIN_RFM95_RST, HIGH);
     delay(10);
 
-    generalCounter = 0;
-    while (!(rfIsWorking = rf95.init()) and (generalCounter++ < RF_INIT_MAX_TRIES))
+    while (!(rfIsWorking = rf95.init()) and (rf_initCounter++ < RF_INIT_MAX_TRIES))
     {
         #if DEBUG_SERIAL
-            Serial.println("LoRa nao inicializou");
+            Serial.print("LoRa nao inicializou, tentativa n"); Serial.println(rf_initCounter);
             Serial.println("Realizando nova tentativa...");
         #endif
     }
 
     if (!rfIsWorking)
-    {
-        ERROR;
-    }
+        pmmErrorsAndSignals.reportError(ERROR_RF_INIT, 0, sdIsWorking, rfIsWorking);
 
     else // if RF is working
     {
@@ -140,9 +149,7 @@ void setup()
         }
 
         if (!rfIsWorking) // Fail at setFrequency
-        {
-            ERROR;
-        }
+            pmmErrorsAndSignals.reportError(ERROR_RF_SET_FREQ, 0, sdIsWorking, rfIsWorking);
 
         else // if RF is working
         {
@@ -166,9 +173,9 @@ void setup()
         Serial.println("Inicialização do modulo SD concluída.");
     #endif
 
-    if (sdIsWorking)
+    if (sdIsWorking) // This conditional exists so you can disable sd writing by changing the initial sdIsWorking value on the variable declaration.
     {
-        fileLog = SD.open("logFilename", FILE_WRITE);
+        fileLog = SD.open(logFilename, FILE_WRITE);
         if (fileLog)
         {
             fileLog.println("sep =, "); //This line handles Excel CSV configuration.
@@ -177,7 +184,7 @@ void setup()
         else
         {
             sdIsWorking = 0;
-            //ERROR HERE!
+            pmmErrorsAndSignals.reportError(ERROR_SD, 0, sdIsWorking, rfIsWorking);
         }
         fileLog.close();
     }
@@ -195,19 +202,25 @@ void setup()
     if (InitBMP())
     {
         baroIsWorking = 0;
+        pmmErrorsAndSignals.reportError(ERROR_BAROMETER_INIT, 0, sdIsWorking, rfIsWorking);
     }
     if (InitAcel())
     {
         accelIsWorking = 0;
+        pmmErrorsAndSignals.reportError(ERROR_ACCELEROMETER_INIT, 0, sdIsWorking, rfIsWorking);
     }
     if (InitGyro())
     {
         gyroIsWorking = 0;
+        pmmErrorsAndSignals.reportError(ERROR_GYROSCOPE_INIT, 0, sdIsWorking, rfIsWorking);
     }
     if (InitMag())
     {
         magnIsWorking = 0;
+        pmmErrorsAndSignals.reportError(ERROR_MAGNETOMETER_INIT, 0, sdIsWorking, rfIsWorking);
     }
+
+
 //END of Setup  ---------------------------------------------------------------------------------------------------------//
 }
 
@@ -232,18 +245,8 @@ void loop()
     //---------------Recuperação---------------//
     if (((abs(imu_struct.acelerometro[0]) < 1) && (abs(imu_struct.acelerometro[1]) < 1) && (abs(imu_struct.acelerometro[2]) < 1)))
     {
-        digitalWrite(PIN_LED_RECOVERY, HIGH);
-        if (sdIsWorking)
-        {
-            fileLog = SD.open("logFilename", FILE_WRITE);
-            if (fileLog)
-            {
-                fileLog.print(millis());fileLog.print(" ,");
-                fileLog.print(imu_struct.acelerometro[2]);fileLog.print(" ,");
-                fileLog.println("Recovery opened");
-            }
-            fileLog.close();
-        }
+        pmmErrorsAndSignals.reportRecuperation(packetIDul, sdIsWorking, rfIsWorking);
+
     }
 
     //---------------GPS Venus---------------//
@@ -268,7 +271,7 @@ void loop()
                     gps_lat = String(gps_stringBuffer).toFloat();
                     gps_getField(gps_sentence, gps_stringBuffer, 4);
                     if (gps_stringBuffer[0] == 'S')
-                        gps_lat = - gps_lat;
+                        gps_lat = -gps_lat;
                     #if DEBUG_SERIAL
                         Serial.print("Lat: "); Serial.print(gps_lat);
                     #endif
@@ -277,7 +280,7 @@ void loop()
                     gps_lon = String(gps_stringBuffer).toFloat();
                     gps_getField(gps_sentence, gps_stringBuffer, 6);
                     if (gps_stringBuffer[0] == 'W')
-                        gps_lon = - gps_lon;
+                        gps_lon = -gps_lon;
                     #if DEBUG_SERIAL
                         Serial.print(" Long: "); Serial.print(gps_lon);
                     #endif
@@ -311,7 +314,7 @@ void loop()
 //---------------SD Logging Code---------------//
     if (sdIsWorking)
     {
-        fileLog = SD.open("logFilename", FILE_WRITE);
+        fileLog = SD.open(logFilename, FILE_WRITE);
         if (fileLog)
         {
             fileLog.print(packetIDul); fileLog.print(" ,");
@@ -336,7 +339,9 @@ void loop()
 
 //-------------- Send RF package ---------------//
     if (rfIsWorking)
+        pmmErrorsAndSignals.blinkRfLED(LOW);
         rf95.sendArrayOfPointersOf4Bytes(rf_radioPacket, RF_WORDS_IN_PACKET);
+        pmmErrorsAndSignals.blinkRfLED(HIGH);
 
     lastAltitude = imu_struct.barometro[2];
     packetIDfloat ++;
