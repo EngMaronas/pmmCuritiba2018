@@ -48,6 +48,8 @@
 #include <pmmGeneralFunctions.h>
 #include <pmmErrorsAndSignals.h>
 
+//--------------- Time delay -----------------//
+unsigned long nextMillis_barometer = 0, nextMillis_magnetometer = 0, nextMillis_accelerometer = 0, nextMillis_gyroscope = 0, nextMillis_rf = 0;
 //--------------- Errors? --------------------//
 int sdIsWorking = 1, rfIsWorking = 1,
     accelIsWorking = 1, gyroIsWorking = 1, magnIsWorking = 1, baroIsWorking = 1;
@@ -99,10 +101,11 @@ uint8_t *rf_radioPacket[RF_BYTES_IN_PACKET] =
     (uint8_t*) & imu_struct.barometro[2]  // temperature
 };
 
+unsigned long timePrint;
 void setup()
 {
     #if DEBUG_SERIAL
-        Serial.begin(9600); //Initialize Serial Port at 9600 baudrate.
+        Serial.begin(250000); //Initialize Serial Port at 9600 baudrate.
         while (!Serial); // wait for serial port to connect. Needed for native USB port only
         Serial.println("Minerva Rockets - UFRJ");
         Serial.println("PacketID, Time(ms), Latitude, Longitude, MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), Pressure (hPa), Altitude (m), Temperature (C)");
@@ -241,29 +244,37 @@ void setup()
 
 void loop()
 {
+
     packetTimeMs = millis();                  // Packet time, in miliseconds. (unsigned long)
     packetTimeFloatS = packetTimeMs / 1000.0; // Packet time, in seconds. (float)
 
     //---------------IMU structure definition---------------//
-    if (baroIsWorking)
-        GetBMP(imu_pstruct); //Fills the BMP085 module information into the IMU structure
+    if (millis() >= nextMillis_barometer)
+    {
+        nextMillis_barometer = millis() + DELAY_MS_BAROMETER;
+        if (baroIsWorking)
+            GetBMP(imu_pstruct); //Fills the BMP085 module information into the IMU structure */
+    }
     if (accelIsWorking)
-        GetAcel(imu_pstruct); //Fills the Accelerometer module information into the IMU structure
+        GetAcel(imu_pstruct); //Fills the Accelerometer module information into the IMU structure*/
     if (gyroIsWorking)
         GetGyro(imu_pstruct); //Fills the Gyroscope module information into the IMU structure
     if (magnIsWorking)
         GetMag(imu_pstruct); //Fills the Magnetometer module information into the IMU structure
 
-
+    /*
     //---------------Recuperação---------------//
     if (((abs(imu_struct.acelerometro[0]) < 1) && (abs(imu_struct.acelerometro[1]) < 1) && (abs(imu_struct.acelerometro[2]) < 1)))
     {
-        pmmErrorsAndSignals.reportRecuperation(packetIDul, sdIsWorking, rfIsWorking);
+        #if DEBUG_SERIAL
+            Serial.println("RECUPERATION!");
+        #endif
+        // pmmErrorsAndSignals.reportRecuperation(packetIDul, sdIsWorking, rfIsWorking);
 
     }
-
+    */
     //---------------GPS Venus---------------//
-    /*
+
     if (Serial4.available())
     {
         while (true)
@@ -302,14 +313,16 @@ void loop()
                 break;
             }
         }
-    }*/
+    }
 
 //---------------Code for serial debugging---------------//
+
     #if DEBUG_SERIAL
         Serial.print(packetIDul); Serial.print(" ,");
         Serial.print(packetTimeMs); Serial.print(" ,");
         Serial.print(gps_lat); Serial.print(" ,");
         Serial.print(gps_lon); Serial.print(" ,");
+
         Serial.print(imu_struct.magnetometro[0]); Serial.print(" ,");
         Serial.print(imu_struct.magnetometro[1]); Serial.print(" ,");
         Serial.print(imu_struct.magnetometro[2]); Serial.print(" ,");
@@ -323,9 +336,8 @@ void loop()
         Serial.print(imu_struct.barometro[1]); Serial.print(" ,");
         Serial.print(imu_struct.barometro[2]); Serial.println(" ,");
     #endif
-
-
 //---------------SD Logging Code---------------//
+
     if (sdIsWorking)
     {
         fileLog = SD.open(logFilename, FILE_WRITE);
@@ -352,12 +364,23 @@ void loop()
     }
 
 //-------------- Send RF package ---------------//
-    if (rfIsWorking)
-        pmmErrorsAndSignals.blinkRfLED(LOW);
-        rf95.sendArrayOfPointersOf4Bytes(rf_radioPacket, RF_WORDS_IN_PACKET);
-        pmmErrorsAndSignals.blinkRfLED(HIGH);
+    if (millis() >= nextMillis_rf)
+    {
+        nextMillis_rf = millis() + DELAY_MS_RF;
+        if (rfIsWorking)
+        {
+            pmmErrorsAndSignals.blinkRfLED(LOW);
+            rf95.sendArrayOfPointersOf4Bytes(rf_radioPacket, RF_WORDS_IN_PACKET);
+            pmmErrorsAndSignals.blinkRfLED(HIGH);
+        }
+    }
     pmmErrorsAndSignals.updateLedsAndBuzzer();
     lastAltitude = imu_struct.barometro[2];
     packetIDfloat ++;
     packetIDul ++;
+    if (packetIDul % 100 == 0)
+    {
+        Serial.print("timeMsBetween 100 cycles = "); Serial.println(millis() - timePrint);
+        timePrint = millis();
+    }
 }

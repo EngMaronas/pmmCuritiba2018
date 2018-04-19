@@ -13,47 +13,37 @@ Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
 Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12346);
 L3G gyro;
 
-int GetGyro(IMU_s *imu) {
+sensors_event_t event;
+
+void GetGyro(IMU_s *imu) {
     gyro.read();
 
     imu->giroscopio[0] = gyro.g.x;
     imu->giroscopio[1] = gyro.g.y;
     imu->giroscopio[2] = gyro.g.z;
-    return 0;
 }
 
-int GetAcel(IMU_s *imu) {
-    sensors_event_t event;
+void GetAcel(IMU_s *imu) {
     accel.getEvent(&event);
 
     imu->acelerometro[0] = event.acceleration.x;
     imu->acelerometro[1] = event.acceleration.y;
     imu->acelerometro[2] = event.acceleration.z;
-    return 0;
 }
 
-int GetMag(IMU_s *imu) {
-    sensors_event_t event;
+void GetMag(IMU_s *imu) {
     mag.getEvent(&event);
 
     imu->magnetometro[0] = event.magnetic.x;
     imu->magnetometro[1] = event.magnetic.y;
     imu->magnetometro[2] = event.magnetic.z;
-    return 0;
 }
 
-int GetBMP(IMU_s *imu) {
-    sensors_event_t event;
-    float temperature;
-    float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
-
+void GetBMP(IMU_s *imu) {
     bmp.getEvent(&event);
-    bmp.getTemperature(&temperature);
-
+    bmp.getTemperature(&(imu->barometro[2]));
     imu->barometro[0] = event.pressure;
-    imu->barometro[1] = bmp.pressureToAltitude(seaLevelPressure, event.pressure);
-    imu->barometro[2] = temperature;
-    return 0;
+    imu->barometro[1] = bmp.pressureToAltitude(SENSORS_PRESSURE_SEALEVELHPA, event.pressure);
 }
 
 int InitAcel() //ADXL45 SETUP
