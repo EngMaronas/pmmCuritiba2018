@@ -67,7 +67,7 @@ int gps_i;
 //------------------- SD vars --------------------//
 File fileLog;
 char logFilename[FILENAME_MAX_LENGTH];
-const int chipSelect = BUILTIN_SDCARD; // Change if different SD card
+const int sd_chipSelect = BUILTIN_SDCARD; // Change if different SD card
 uint16_t fileID = 0;
 
 //------------ IMU Struct Declaration ------------//
@@ -101,33 +101,54 @@ uint8_t *rf_radioPacket[RF_BYTES_IN_PACKET] =
 
 void setup()
 {
+    #if DEBUG_SERIAL
+        Serial.begin(9600); //Initialize Serial Port at 9600 baudrate.
+        while (!Serial); // wait for serial port to connect. Needed for native USB port only
+        Serial.println("Minerva Rockets - UFRJ");
+        Serial.println("PacketID, Time(ms), Latitude, Longitude, MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), Pressure (hPa), Altitude (m), Temperature (C)");
+    #endif
+
     int hasFoundFileID = 0;
-    int rf_initCounter = 0;
-    while (!hasFoundFileID);
-        snprintf(logFilename, FILENAME_MAX_LENGTH, "%s%02u%s", FILENAME_BASE_PREFIX, fileID, FILENAME_BASE_EXTENSION); // %02u to make the file id at least 2 digits.
+
+    if (!SD.begin(sd_chipSelect))
+    {
+        #if DEBUG_SERIAL
+            Serial.println("Inicialização do modulo SD falhou!");
+        #endif
+        sdIsWorking = 0;
+    }
+    else
+    {
+        #if DEBUG_SERIAL
+            Serial.println("Inicialização do modulo SD concluída.");
+        #endif
+    }
+
+    while (!hasFoundFileID)
+    {
+        snprintf(logFilename, FILENAME_MAX_LENGTH, "%s%03u%s", FILENAME_BASE_PREFIX, fileID, FILENAME_BASE_EXTENSION); // %02u to make the file id at least 2 digits.
         if (SD.exists(logFilename))
+        {
             fileID++;
+        }
         else
             hasFoundFileID = 1;
+    }
+    #if DEBUG_SERIAL
+        Serial.print("Filename is = \""); Serial.print(logFilename); Serial.println("\"");
+    #endif
 
     pmmErrorsAndSignals.init(&rf95, fileID);
 
-
-    #if DEBUG_SERIAL
-        Serial.begin(9600); //Initialize Serial Port at 9600 baudrate.
-    #endif
-    Serial4.begin(9600); //Initialize GPS port at 9600 baudrate.
+    // Serial4.begin(9600); //Initialize GPS port at 9600 baudrate.
 
 //---------------Setup LORA---------------//
     pinMode(PIN_RFM95_RST, OUTPUT);
     digitalWrite(PIN_RFM95_RST, HIGH);
 
-    delay(100);
-    digitalWrite(PIN_RFM95_RST, LOW);
-    delay(10);
-    digitalWrite(PIN_RFM95_RST, HIGH);
-    delay(10);
+    delay(100); digitalWrite(PIN_RFM95_RST, LOW); delay(10); digitalWrite(PIN_RFM95_RST, HIGH); delay(10);
 
+    int rf_initCounter = 0;
     while (!(rfIsWorking = rf95.init()) and (rf_initCounter++ < RF_INIT_MAX_TRIES))
     {
         #if DEBUG_SERIAL
@@ -146,11 +167,8 @@ void setup()
             #if DEBUG_SERIAL
                 Serial.println("setFrequency falhou!");
             #endif
-        }
-
-        if (!rfIsWorking) // Fail at setFrequency
             pmmErrorsAndSignals.reportError(ERROR_RF_SET_FREQ, 0, sdIsWorking, rfIsWorking);
-
+        }
         else // if RF is working
         {
             rf95.setTxPower(23, false);
@@ -162,27 +180,23 @@ void setup()
 //END of Setup LORA-----------------------//
 
 //---------------Setup Modulo SD---------------//
-    if (!SD.begin(chipSelect))
-    {
-        #if DEBUG_SERIAL
-            Serial.println("Inicialização do modulo SD falhou!");
-        #endif
-        sdIsWorking = 0;
-    }
-    #if DEBUG_SERIAL
-        Serial.println("Inicialização do modulo SD concluída.");
-    #endif
 
     if (sdIsWorking) // This conditional exists so you can disable sd writing by changing the initial sdIsWorking value on the variable declaration.
     {
         fileLog = SD.open(logFilename, FILE_WRITE);
         if (fileLog)
         {
+            #if DEBUG_SERIAL
+                Serial.println("sdIsWorking = True");
+            #endif
             fileLog.println("sep =, "); //This line handles Excel CSV configuration.
             fileLog.println("PacketID, Time(ms), Latitude, Longitude, MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), Pressure (hPa), Altitude (m), Temperature (C)");
         }
         else
         {
+            #if DEBUG_SERIAL
+                Serial.println("sdIsWorking = False");
+            #endif
             sdIsWorking = 0;
             pmmErrorsAndSignals.reportError(ERROR_SD, 0, sdIsWorking, rfIsWorking);
         }
@@ -194,9 +208,9 @@ void setup()
 //---------------Setup Serial Monitor-------------------//
     #if DEBUG_SERIAL
         Serial.println("Minerva Rockets - UFRJ");
-        Serial.println("sep =, "); //This line handles Excel CSV configuration.
         Serial.println("PacketID, Time(ms), Latitude, Longitude, MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), Pressure (hPa), Altitude (m), Temperature (C)");
     #endif
+
 
 //-------------- IMU's Init ----------------------------//
     if (InitBMP())
@@ -219,7 +233,6 @@ void setup()
         magnIsWorking = 0;
         pmmErrorsAndSignals.reportError(ERROR_MAGNETOMETER_INIT, 0, sdIsWorking, rfIsWorking);
     }
-
 
 //END of Setup  ---------------------------------------------------------------------------------------------------------//
 }
@@ -250,6 +263,7 @@ void loop()
     }
 
     //---------------GPS Venus---------------//
+    /*
     if (Serial4.available())
     {
         while (true)
@@ -288,7 +302,7 @@ void loop()
                 break;
             }
         }
-    }
+    }*/
 
 //---------------Code for serial debugging---------------//
     #if DEBUG_SERIAL
@@ -307,7 +321,7 @@ void loop()
         Serial.print(imu_struct.giroscopio[2]); Serial.print(" ,");
         Serial.print(imu_struct.barometro[0]); Serial.print(" ,");
         Serial.print(imu_struct.barometro[1]); Serial.print(" ,");
-        Serial.print(imu_struct.barometro[2]); Serial.print(" ,");
+        Serial.print(imu_struct.barometro[2]); Serial.println(" ,");
     #endif
 
 
@@ -342,7 +356,7 @@ void loop()
         pmmErrorsAndSignals.blinkRfLED(LOW);
         rf95.sendArrayOfPointersOf4Bytes(rf_radioPacket, RF_WORDS_IN_PACKET);
         pmmErrorsAndSignals.blinkRfLED(HIGH);
-
+    pmmErrorsAndSignals.updateLedsAndBuzzer();
     lastAltitude = imu_struct.barometro[2];
     packetIDfloat ++;
     packetIDul ++;

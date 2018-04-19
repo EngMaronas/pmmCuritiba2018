@@ -1,0 +1,2 @@
+If on linux: https://www.pjrc.com/teensy/loader_linux.html
+sudo cp 49-teensy.rules /etc/udev/rules.d/
