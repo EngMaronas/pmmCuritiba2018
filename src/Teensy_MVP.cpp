@@ -87,18 +87,18 @@ uint8_t *rf_radioPacket[RF_BYTES_IN_PACKET] =
     (uint8_t*) & packetTimeFloatS,
     (uint8_t*) & gps_lat,
     (uint8_t*) & gps_lon,
-    (uint8_t*) & imu_struct.magnetometro[0],
-    (uint8_t*) & imu_struct.magnetometro[1],
-    (uint8_t*) & imu_struct.magnetometro[2],
+    (uint8_t*) & imu_struct.barometro[0], // pressure
+    (uint8_t*) & imu_struct.barometro[1], // altitude
+    (uint8_t*) & imu_struct.barometro[2], // temperature
     (uint8_t*) & imu_struct.acelerometro[0],
     (uint8_t*) & imu_struct.acelerometro[1],
     (uint8_t*) & imu_struct.acelerometro[2],
     (uint8_t*) & imu_struct.giroscopio[0],
     (uint8_t*) & imu_struct.giroscopio[1],
     (uint8_t*) & imu_struct.giroscopio[2],
-    (uint8_t*) & imu_struct.barometro[0], // pressure
-    (uint8_t*) & imu_struct.barometro[1], // altitude
-    (uint8_t*) & imu_struct.barometro[2]  // temperature
+    (uint8_t*) & imu_struct.magnetometro[0],
+    (uint8_t*) & imu_struct.magnetometro[1],
+    (uint8_t*) & imu_struct.magnetometro[2]
 };
 
 unsigned long timePrint;
@@ -143,7 +143,7 @@ void setup()
 
     pmmErrorsAndSignals.init(&rf95, fileID);
 
-    // Serial4.begin(9600); //Initialize GPS port at 9600 baudrate.
+    Serial4.begin(9600); //Initialize GPS port at 9600 baudrate.
 
 //---------------Setup LORA---------------//
     pinMode(PIN_RFM95_RST, OUTPUT);
@@ -323,18 +323,19 @@ void loop()
         Serial.print(gps_lat); Serial.print(" ,");
         Serial.print(gps_lon); Serial.print(" ,");
 
-        Serial.print(imu_struct.magnetometro[0]); Serial.print(" ,");
-        Serial.print(imu_struct.magnetometro[1]); Serial.print(" ,");
-        Serial.print(imu_struct.magnetometro[2]); Serial.print(" ,");
+        Serial.print(imu_struct.barometro[0]); Serial.print(" ,");
+        Serial.print(imu_struct.barometro[1]); Serial.print(" ,");
+        Serial.print(imu_struct.barometro[2]); Serial.print(" ,");
         Serial.print(imu_struct.acelerometro[0]); Serial.print(" ,");
         Serial.print(imu_struct.acelerometro[1]); Serial.print(" ,");
         Serial.print(imu_struct.acelerometro[2]); Serial.print(" ,");
         Serial.print(imu_struct.giroscopio[0]); Serial.print(" ,");
         Serial.print(imu_struct.giroscopio[1]); Serial.print(" ,");
         Serial.print(imu_struct.giroscopio[2]); Serial.print(" ,");
-        Serial.print(imu_struct.barometro[0]); Serial.print(" ,");
-        Serial.print(imu_struct.barometro[1]); Serial.print(" ,");
-        Serial.print(imu_struct.barometro[2]); Serial.println(" ,");
+        Serial.print(imu_struct.magnetometro[0]); Serial.print(" ,");
+        Serial.print(imu_struct.magnetometro[1]); Serial.print(" ,");
+        Serial.print(imu_struct.magnetometro[2]); Serial.println(" ,");
+
     #endif
 //---------------SD Logging Code---------------//
 
@@ -347,18 +348,18 @@ void loop()
             fileLog.print(packetTimeMs); fileLog.print(" ,");
             fileLog.print(gps_lat); fileLog.print(" ,");
             fileLog.print(gps_lon); fileLog.print(" ,");
-            fileLog.print(imu_struct.magnetometro[0]); fileLog.print(" ,");
-            fileLog.print(imu_struct.magnetometro[1]); fileLog.print(" ,");
-            fileLog.print(imu_struct.magnetometro[2]); fileLog.print(" ,");
+            fileLog.print(imu_struct.barometro[0]); fileLog.print(" ,");
+            fileLog.print(imu_struct.barometro[1]); fileLog.print(" ,");
+            fileLog.print(imu_struct.barometro[2]); fileLog.print(" ,");
             fileLog.print(imu_struct.acelerometro[0]); fileLog.print(" ,");
             fileLog.print(imu_struct.acelerometro[1]); fileLog.print(" ,");
             fileLog.print(imu_struct.acelerometro[2]); fileLog.print(" ,");
             fileLog.print(imu_struct.giroscopio[0]); fileLog.print(" ,");
             fileLog.print(imu_struct.giroscopio[1]); fileLog.print(" ,");
             fileLog.print(imu_struct.giroscopio[2]); fileLog.print(" ,");
-            fileLog.print(imu_struct.barometro[0]); fileLog.print(" ,");
-            fileLog.print(imu_struct.barometro[1]); fileLog.print(" ,");
-            fileLog.print(imu_struct.barometro[2]); fileLog.print(" ,");
+            fileLog.print(imu_struct.magnetometro[0]); fileLog.print(" ,");
+            fileLog.print(imu_struct.magnetometro[1]); fileLog.print(" ,");
+            fileLog.print(imu_struct.magnetometro[2]); fileLog.print(" ,");
             fileLog.close();
         }
     }
