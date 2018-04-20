@@ -240,8 +240,9 @@ void loop()
     //DEBUG_MAINLOOP_PRINT(0);
     packetTimeMs = millis();                  // Packet time, in miliseconds. (unsigned long)
     packetTimeFloatS = packetTimeMs / 1000.0; // Packet time, in seconds. (float)
-    /*DEBUG_MAINLOOP_PRINT(1);
+    DEBUG_MAINLOOP_PRINT(1);
     //---------------IMU structure definition---------------//
+
     if (millis() >= nextMillis_barometer)
     {
         nextMillis_barometer = millis() + DELAY_MS_BAROMETER;
@@ -249,29 +250,31 @@ void loop()
             GetBMP(imu_pstruct); //Fills the BMP085 module information into the IMU structure
     }
     DEBUG_MAINLOOP_PRINT(2);
+
     if (accelIsWorking)
-        GetAcel(imu_pstruct); //Fills the Accelerometer module information into the IMU structure*/
+        GetAcel(imu_pstruct); //Fills the Accelerometer module information into the IMU structure
     DEBUG_MAINLOOP_PRINT(3);
     if (gyroIsWorking)
         GetGyro(imu_pstruct); //Fills the Gyroscope module information into the IMU structure
 
-    /*
+
     DEBUG_MAINLOOP_PRINT(4);
     if (magnIsWorking)
         GetMag(imu_pstruct); //Fills the Magnetometer module information into the IMU structure
-    DEBUG_MAINLOOP_PRINT(5); */
-    /*
+    DEBUG_MAINLOOP_PRINT(5);
+
     //---------------Recuperação---------------//
     if (((abs(imu_struct.acelerometro[0]) < 1) && (abs(imu_struct.acelerometro[1]) < 1) && (abs(imu_struct.acelerometro[2]) < 1)))
     {
         DEBUG_PRINT("RECUPERATION!");
-        #endif
+
         // pmmErrorsAndSignals.reportRecuperation(packetIDul, sdIsWorking, rfIsWorking);
 
     }
-    */
+
     //---------------GPS Venus---------------//
-    //DEBUG_MAINLOOP_PRINT(6);
+    /*
+    DEBUG_MAINLOOP_PRINT(6);
     if (Serial4.available())
     {
         while (true)
@@ -310,11 +313,11 @@ void loop()
                 break;
             }
         }
-    }
+    }*/
     //DEBUG_MAINLOOP_PRINT(7);
 //---------------Code for serial debugging---------------//
 
-    #if 0
+    #if 1
         Serial.print(packetIDul); Serial.print(" ,");
         Serial.print(packetTimeMs); Serial.print(" ,");
         Serial.print(gps_lat); Serial.print(" ,");
@@ -333,34 +336,42 @@ void loop()
         Serial.print(imu_struct.magnetometro[1]); Serial.print(" ,");
         Serial.print(imu_struct.magnetometro[2]); Serial.println(" ,");
     #endif
-    //DEBUG_MAINLOOP_PRINT(8);
+    DEBUG_MAINLOOP_PRINT(8);
 //---------------SD Logging Code---------------//
-    /*
+
     if (sdIsWorking)
     {
-        fileLog = SD.open(logFilename, FILE_WRITE);
-        if (fileLog)
+        DEBUG_MAINLOOP_PRINT(8.1);
+        if (SD.open(logFilename, FILE_WRITE))
         {
             fileLog.print(packetIDul); fileLog.print(" ,");
             fileLog.print(packetTimeMs); fileLog.print(" ,");
             fileLog.print(gps_lat); fileLog.print(" ,");
             fileLog.print(gps_lon); fileLog.print(" ,");
+            DEBUG_MAINLOOP_PRINT(8.2);
             fileLog.print(imu_struct.barometro[0]); fileLog.print(" ,");
             fileLog.print(imu_struct.barometro[1]); fileLog.print(" ,");
             fileLog.print(imu_struct.barometro[2]); fileLog.print(" ,");
             fileLog.print(imu_struct.acelerometro[0]); fileLog.print(" ,");
             fileLog.print(imu_struct.acelerometro[1]); fileLog.print(" ,");
             fileLog.print(imu_struct.acelerometro[2]); fileLog.print(" ,");
+            DEBUG_MAINLOOP_PRINT(8.3);
             fileLog.print(imu_struct.giroscopio[0]); fileLog.print(" ,");
             fileLog.print(imu_struct.giroscopio[1]); fileLog.print(" ,");
             fileLog.print(imu_struct.giroscopio[2]); fileLog.print(" ,");
+            DEBUG_MAINLOOP_PRINT(8.4);
             fileLog.print(imu_struct.magnetometro[0]); fileLog.print(" ,");
             fileLog.print(imu_struct.magnetometro[1]); fileLog.print(" ,");
             fileLog.print(imu_struct.magnetometro[2]); fileLog.print(" ,");
             fileLog.close();
         }
-    }*/
-    //DEBUG_MAINLOOP_PRINT(9);
+        else
+        {
+            pmmErrorsAndSignals.reportError(ERROR_SD_WRITE, packetIDul, sdIsWorking, rfIsWorking);
+            DEBUG_MAINLOOP_PRINT(8.5);
+        }
+    }
+    DEBUG_MAINLOOP_PRINT(9);
 //-------------- Send RF package ---------------//
     if (millis() >= nextMillis_rf)
     {
@@ -372,7 +383,7 @@ void loop()
             pmmErrorsAndSignals.blinkRfLED(HIGH);
         }
     }
-    //DEBUG_MAINLOOP_PRINT(10);
+    DEBUG_MAINLOOP_PRINT(10);
     pmmErrorsAndSignals.updateLedsAndBuzzer();
     lastAltitude = imu_struct.barometro[2];
     packetIDfloat ++;

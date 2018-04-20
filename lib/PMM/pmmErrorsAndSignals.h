@@ -11,6 +11,7 @@
 typedef enum {
     OK,
     ERROR_SD,
+    ERROR_SD_WRITE,
     ERROR_RF_INIT,
     ERROR_RF_SET_FREQ,
     ERROR_ACCELEROMETER_INIT,

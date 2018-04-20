@@ -19,6 +19,7 @@
 typedef enum {
     OK,
     ERROR_SD,
+    ERROR_SD_WRITE,
     ERROR_RF_INIT,
     ERROR_RF_SET_FREQ,
     ERROR_ACCELEROMETER_INIT,
@@ -32,6 +33,7 @@ typedef enum {
 const char *pmmErrorString[ERRORS_AMOUNT] = {
     "No errors",                // OK,
     "SD init fail",             // ERROR_SD,
+    "SD write fail",            // ERROR_SD_WRITE,
     "RF init fail",             // ERROR_RF_INIT,
     "RF Set Freq fail",         // ERROR_RF_SET_FREQ,
     "Accelerometer init fail",  // ERROR_ACCELEROMETER_INIT,
