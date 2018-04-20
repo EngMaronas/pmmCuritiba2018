@@ -102,47 +102,42 @@ uint8_t *rf_radioPacket[RF_BYTES_IN_PACKET] =
 };
 
 unsigned long timePrint;
+
 void setup()
 {
     #if DEBUG_SERIAL
         Serial.begin(250000); //Initialize Serial Port at 9600 baudrate.
         while (!Serial); // wait for serial port to connect. Needed for native USB port only
-        Serial.println("Minerva Rockets - UFRJ");
-        Serial.println("PacketID, Time(ms), Latitude, Longitude, MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), Pressure (hPa), Altitude (m), Temperature (C)");
     #endif
 
+// SETUP SD //
     int hasFoundFileID = 0;
 
     if (!SD.begin(sd_chipSelect))
     {
-        #if DEBUG_SERIAL
-            Serial.println("Inicialização do modulo SD falhou!");
-        #endif
+        DEBUG_PRINT("Inicialização do modulo SD falhou!");
         sdIsWorking = 0;
     }
     else
-    {
-        #if DEBUG_SERIAL
-            Serial.println("Inicialização do modulo SD concluída.");
-        #endif
-    }
+        DEBUG_PRINT("Inicialização do modulo SD concluída.");
 
     while (!hasFoundFileID)
     {
         snprintf(logFilename, FILENAME_MAX_LENGTH, "%s%03u%s", FILENAME_BASE_PREFIX, fileID, FILENAME_BASE_EXTENSION); // %02u to make the file id at least 2 digits.
         if (SD.exists(logFilename))
-        {
             fileID++;
-        }
+
         else
             hasFoundFileID = 1;
     }
     #if DEBUG_SERIAL
         Serial.print("Filename is = \""); Serial.print(logFilename); Serial.println("\"");
     #endif
+// SETUP SD END //
 
     pmmErrorsAndSignals.init(&rf95, fileID);
 
+// ---- GPS
     Serial4.begin(9600); //Initialize GPS port at 9600 baudrate.
 
 //---------------Setup LORA---------------//
@@ -167,17 +162,15 @@ void setup()
     {
         if (!(rfIsWorking = rf95.setFrequency(RF95_FREQ)))
         {
-            #if DEBUG_SERIAL
-                Serial.println("setFrequency falhou!");
-            #endif
+            DEBUG_PRINT("setFrequency falhou!");
+
             pmmErrorsAndSignals.reportError(ERROR_RF_SET_FREQ, 0, sdIsWorking, rfIsWorking);
         }
         else // if RF is working
         {
             rf95.setTxPower(23, false);
-            #if DEBUG_SERIAL
-                Serial.println("LoRa inicializado!");
-            #endif
+            DEBUG_PRINT("LoRa inicializado!");
+
         }
     }
 //END of Setup LORA-----------------------//
@@ -189,17 +182,15 @@ void setup()
         fileLog = SD.open(logFilename, FILE_WRITE);
         if (fileLog)
         {
-            #if DEBUG_SERIAL
-                Serial.println("sdIsWorking = True");
-            #endif
+            DEBUG_PRINT("sdIsWorking = True");
+
             fileLog.println("sep =, "); //This line handles Excel CSV configuration.
-            fileLog.println("PacketID, Time(ms), Latitude, Longitude, MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), Pressure (hPa), Altitude (m), Temperature (C)");
+            fileLog.println("PacketID, Time(ms), Latitude, Longitude, Pressure (hPa), Altitude (m), Temperature (C), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s)");
         }
         else
         {
-            #if DEBUG_SERIAL
-                Serial.println("sdIsWorking = False");
-            #endif
+            DEBUG_PRINT("sdIsWorking = False");
+
             sdIsWorking = 0;
             pmmErrorsAndSignals.reportError(ERROR_SD, 0, sdIsWorking, rfIsWorking);
         }
@@ -208,32 +199,34 @@ void setup()
 //END of Setup Modulo SD--------------------------------//
 
 
-//---------------Setup Serial Monitor-------------------//
-    #if DEBUG_SERIAL
-        Serial.println("Minerva Rockets - UFRJ");
-        Serial.println("PacketID, Time(ms), Latitude, Longitude, MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), Pressure (hPa), Altitude (m), Temperature (C)");
-    #endif
+
+    DEBUG_PRINT("\nMinerva Rockets - UFRJ");
+    DEBUG_PRINT("PacketID, Time(ms), Latitude, Longitude, Pressure (hPa), Altitude (m), Temperature (C), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s)");
 
 
 //-------------- IMU's Init ----------------------------//
     if (InitBMP())
     {
         baroIsWorking = 0;
+        DEBUG_PRINT("BAROMETER INIT ERROR");
         pmmErrorsAndSignals.reportError(ERROR_BAROMETER_INIT, 0, sdIsWorking, rfIsWorking);
     }
     if (InitAcel())
     {
         accelIsWorking = 0;
+        DEBUG_PRINT("ACCELEROMETER INIT ERROR");
         pmmErrorsAndSignals.reportError(ERROR_ACCELEROMETER_INIT, 0, sdIsWorking, rfIsWorking);
     }
     if (InitGyro())
     {
         gyroIsWorking = 0;
+        DEBUG_PRINT("GYROSCOPE INIT ERROR");
         pmmErrorsAndSignals.reportError(ERROR_GYROSCOPE_INIT, 0, sdIsWorking, rfIsWorking);
     }
     if (InitMag())
     {
         magnIsWorking = 0;
+        DEBUG_PRINT("MAGNETOMETER INIT ERROR");
         pmmErrorsAndSignals.reportError(ERROR_MAGNETOMETER_INIT, 0, sdIsWorking, rfIsWorking);
     }
 
@@ -244,37 +237,41 @@ void setup()
 
 void loop()
 {
-
+    //DEBUG_MAINLOOP_PRINT(0);
     packetTimeMs = millis();                  // Packet time, in miliseconds. (unsigned long)
     packetTimeFloatS = packetTimeMs / 1000.0; // Packet time, in seconds. (float)
-
+    /*DEBUG_MAINLOOP_PRINT(1);
     //---------------IMU structure definition---------------//
     if (millis() >= nextMillis_barometer)
     {
         nextMillis_barometer = millis() + DELAY_MS_BAROMETER;
         if (baroIsWorking)
-            GetBMP(imu_pstruct); //Fills the BMP085 module information into the IMU structure */
+            GetBMP(imu_pstruct); //Fills the BMP085 module information into the IMU structure
     }
+    DEBUG_MAINLOOP_PRINT(2);
     if (accelIsWorking)
         GetAcel(imu_pstruct); //Fills the Accelerometer module information into the IMU structure*/
+    DEBUG_MAINLOOP_PRINT(3);
     if (gyroIsWorking)
         GetGyro(imu_pstruct); //Fills the Gyroscope module information into the IMU structure
+
+    /*
+    DEBUG_MAINLOOP_PRINT(4);
     if (magnIsWorking)
         GetMag(imu_pstruct); //Fills the Magnetometer module information into the IMU structure
-
+    DEBUG_MAINLOOP_PRINT(5); */
     /*
     //---------------Recuperação---------------//
     if (((abs(imu_struct.acelerometro[0]) < 1) && (abs(imu_struct.acelerometro[1]) < 1) && (abs(imu_struct.acelerometro[2]) < 1)))
     {
-        #if DEBUG_SERIAL
-            Serial.println("RECUPERATION!");
+        DEBUG_PRINT("RECUPERATION!");
         #endif
         // pmmErrorsAndSignals.reportRecuperation(packetIDul, sdIsWorking, rfIsWorking);
 
     }
     */
     //---------------GPS Venus---------------//
-
+    //DEBUG_MAINLOOP_PRINT(6);
     if (Serial4.available())
     {
         while (true)
@@ -314,10 +311,10 @@ void loop()
             }
         }
     }
-
+    //DEBUG_MAINLOOP_PRINT(7);
 //---------------Code for serial debugging---------------//
 
-    #if DEBUG_SERIAL
+    #if 0
         Serial.print(packetIDul); Serial.print(" ,");
         Serial.print(packetTimeMs); Serial.print(" ,");
         Serial.print(gps_lat); Serial.print(" ,");
@@ -335,10 +332,10 @@ void loop()
         Serial.print(imu_struct.magnetometro[0]); Serial.print(" ,");
         Serial.print(imu_struct.magnetometro[1]); Serial.print(" ,");
         Serial.print(imu_struct.magnetometro[2]); Serial.println(" ,");
-
     #endif
+    //DEBUG_MAINLOOP_PRINT(8);
 //---------------SD Logging Code---------------//
-
+    /*
     if (sdIsWorking)
     {
         fileLog = SD.open(logFilename, FILE_WRITE);
@@ -362,8 +359,8 @@ void loop()
             fileLog.print(imu_struct.magnetometro[2]); fileLog.print(" ,");
             fileLog.close();
         }
-    }
-
+    }*/
+    //DEBUG_MAINLOOP_PRINT(9);
 //-------------- Send RF package ---------------//
     if (millis() >= nextMillis_rf)
     {
@@ -375,6 +372,7 @@ void loop()
             pmmErrorsAndSignals.blinkRfLED(HIGH);
         }
     }
+    //DEBUG_MAINLOOP_PRINT(10);
     pmmErrorsAndSignals.updateLedsAndBuzzer();
     lastAltitude = imu_struct.barometro[2];
     packetIDfloat ++;

@@ -17,7 +17,7 @@ sensors_event_t event;
 
 void GetGyro(IMU_s *imu) {
     gyro.read();
-
+    Serial.println("fuck");
     imu->giroscopio[0] = gyro.g.x;
     imu->giroscopio[1] = gyro.g.y;
     imu->giroscopio[2] = gyro.g.z;

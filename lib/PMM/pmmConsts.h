@@ -1,7 +1,23 @@
 #ifndef PMM_CONST_h
 #define PMM_CONST_h
 
+
+
 #define DEBUG_SERIAL 1
+
+#if DEBUG_SERIAL
+#define DEBUG_PRINT(x) Serial.println(x)
+#else
+#define DEBUG_PRINT(x) do {} while (0)
+#endif
+
+#define DEBUG_MAINLOOP_SERIAL 1
+
+#if DEBUG_MAINLOOP_SERIAL
+#define DEBUG_MAINLOOP_PRINT(x) Serial.print("b"); Serial.println(x)
+#else
+#define DEBUG_MAINLOOP_PRINT(x) do {} while (0)
+#endif
 
 //-------------- LoRa ----------------//
 #define PIN_RFM95_CS 15
