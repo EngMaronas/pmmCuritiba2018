@@ -1,6 +1,8 @@
-#include <L3G.h>
+#include "L3G.h"
 #include <Wire.h>
 #include <math.h>
+#include <Arduino.h>
+
 
 // Defines ////////////////////////////////////////////////////////////////
 
@@ -177,37 +179,31 @@ byte L3G::readReg(byte reg)
 // Reads the 3 gyro channels and stores them in vector g
 void L3G::read()
 {
-  Serial.println("1");
   Wire.beginTransmission(address);
   // assert the MSB of the address to get the gyro
   // to do slave-transmit subaddress updating.
   Wire.write(OUT_X_L | (1 << 7));
   Wire.endTransmission();
   Wire.requestFrom(address, (byte)6);
-  Serial.println("2");
   unsigned int millis_start = millis();
   while (Wire.available() < 6)
   {
-    Serial.println(Wire.available());
     if (io_timeout > 0 && ((unsigned int)millis() - millis_start) > io_timeout)
     {
       did_timeout = true;
       return;
     }
   }
-  Serial.println("3");
   uint8_t xlg = Wire.read();
   uint8_t xhg = Wire.read();
   uint8_t ylg = Wire.read();
   uint8_t yhg = Wire.read();
   uint8_t zlg = Wire.read();
   uint8_t zhg = Wire.read();
-  Serial.println("4");
   // combine high and low bytes
   g.x = (int16_t)(xhg << 8 | xlg);
   g.y = (int16_t)(yhg << 8 | ylg);
   g.z = (int16_t)(zhg << 8 | zlg);
-  Serial.println("5");
 }
 
 void L3G::vector_normalize(vector<float> *a)

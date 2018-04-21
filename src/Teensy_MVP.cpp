@@ -39,7 +39,7 @@
  *  * Caso queiria usar outra entrada RX/TX consultar pinagem em: https://www.pjrc.com/teensy/pinout.html
  * E trocar Serial2 pelo numero do Serial a utilizar
  */
-
+// https://forum.pjrc.com/threads/39158-Using-SdFat-to-acces-Teensy-3-6-SD-internal-card-(-amp-with-audio-board)
 //---------------Inclusão de bibliotecas---------------//
 #include <GY80TEENSY.h>
 #include <RH_RF95.h>
