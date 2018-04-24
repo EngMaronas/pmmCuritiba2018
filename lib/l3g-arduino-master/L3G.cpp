@@ -1,6 +1,8 @@
-#include <L3G.h>
+#include "L3G.h"
 #include <Wire.h>
 #include <math.h>
+#include <Arduino.h>
+
 
 // Defines ////////////////////////////////////////////////////////////////
 
@@ -183,7 +185,6 @@ void L3G::read()
   Wire.write(OUT_X_L | (1 << 7));
   Wire.endTransmission();
   Wire.requestFrom(address, (byte)6);
-  
   unsigned int millis_start = millis();
   while (Wire.available() < 6)
   {
@@ -193,14 +194,12 @@ void L3G::read()
       return;
     }
   }
-
   uint8_t xlg = Wire.read();
   uint8_t xhg = Wire.read();
   uint8_t ylg = Wire.read();
   uint8_t yhg = Wire.read();
   uint8_t zlg = Wire.read();
   uint8_t zhg = Wire.read();
-
   // combine high and low bytes
   g.x = (int16_t)(xhg << 8 | xlg);
   g.y = (int16_t)(yhg << 8 | ylg);

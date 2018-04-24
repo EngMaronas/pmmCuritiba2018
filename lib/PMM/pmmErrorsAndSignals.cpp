@@ -201,32 +201,32 @@ void PmmErrorsAndSignals::updateLedsAndBuzzer()
     }
 }
 
-// [1090][763.32s] ERROR 3: SD
+// [1090;763.312s Error 3: SD]
 void PmmErrorsAndSignals::reportError(pmmErrorType errorID, unsigned long packetID, int sdIsWorking, int rfIsWorking)
 {
     char errorString[ERROR_STRING_LENGTH];
 
     digitalWrite(PIN_LED_ALL_OK_AND_RF, LOW); // Make sure the All OK Led is Off (or turn it off if first time)
-    snprintf(errorString, ERROR_STRING_LENGTH, "[%lu][%.3f] ERROR %i: %s", packetID, millis() / 1000.0, errorID, returnPmmErrorString(errorID));
+    snprintf(errorString, ERROR_STRING_LENGTH, "%s[%lu;%.3fs Error %i: %s]", RF_VALIDATION_HEADER_EXTRA, packetID, millis() / 1000.0, errorID, returnPmmErrorString(errorID));
     Serial.println(errorString); //Initialize Serial Port at 9600 baudrate. // debug
     if (mActualNumberOfErrors < ERRORS_ARRAY_SIZE)
         mErrorsArray[mActualNumberOfErrors++] = errorID;
     if (sdIsWorking)
-        writelnToSd(errorString, mFilenameExtra);
+        writelnToSd(errorString + 4, mFilenameExtra); // +4 to skip the MNEX header
     if (rfIsWorking)
-        mRf95Ptr->send((uint8_t*)errorString, strlen(errorString) + 1);
+        mRf95Ptr->send((uint8_t*)errorString, strlen(errorString)); // \0 isn't sent.
 }
 
-// [1090][763.32s] ERROR 3: SD
+// [1090;763.312s Recuperation Activated!]
 void PmmErrorsAndSignals::reportRecuperation(unsigned long packetID, int sdIsWorking, int rfIsWorking)
 {
     char recuperationString[ERROR_STRING_LENGTH];
-    snprintf(recuperationString, ERROR_STRING_LENGTH, "%s[%lu][%.3f] %s", RF_VALIDATION_HEADER_EXTRA, packetID, millis() / 1000.0, recuperationActivatedString);
+    snprintf(recuperationString, ERROR_STRING_LENGTH, "%s[%lu;%.3fs %s]", RF_VALIDATION_HEADER_EXTRA, packetID, millis() / 1000.0, recuperationActivatedString);
     digitalWrite(PIN_LED_RECOVERY, HIGH);
     if (sdIsWorking)
         writelnToSd(recuperationString + 4, mFilenameExtra); // +4 to skip the MNEX header
     if (rfIsWorking)
-        mRf95Ptr->send((uint8_t*)recuperationString, strlen(recuperationString) + 1);
+        mRf95Ptr->send((uint8_t*)recuperationString, strlen(recuperationString)); // \0 isn't sent.
 
 }
 void PmmErrorsAndSignals::blinkRfLED(int state)
