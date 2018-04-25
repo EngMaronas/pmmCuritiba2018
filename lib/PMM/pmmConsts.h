@@ -9,7 +9,7 @@
     #define DEBUG_PRINT(x) do {} while (0)
 #endif
 
-#define DEBUG_MAINLOOP_SERIAL 1
+#define DEBUG_MAINLOOP_SERIAL 0
 
 #if DEBUG_MAINLOOP_SERIAL
     #define DEBUG_MAINLOOP_PRINT(x) Serial.println(x)

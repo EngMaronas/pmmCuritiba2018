@@ -45,6 +45,8 @@
 #include <RH_RF95.h>
 #include <pmmConsts.h>
 #include <pmmGeneralFunctions.h>
+#include <pmmGps.h>
+#include <pmmSd.h>
 #include <pmmErrorsAndSignals.h>
 
 //--------------- Time delay -----------------//
@@ -61,10 +63,9 @@ unsigned long packetTimeMs = 0, packetIDul = 0;
 RH_RF95 rf95(PIN_RFM95_CS, PIN_RFM95_INT);
 
 //--------------- GPS Venus Vars---------------//
-char gps_sentence[GPS_SENTENCE_SIZE], gps_stringBuffer[20];;
-float gps_lat, gps_lon;
-int gps_i;
-MinimumSerial gpsSerial;
+GpsManager gpsManager;
+Gps_structType gps_struct;
+
 //--------------- SD vars ------------------//
 SdManager sdManager;
 char logString[LOG_BUFFER_LENGTH];
@@ -79,13 +80,14 @@ IMU_s *imu_pstruct = &imu_struct;
 float lastAltitude;
 
 // An array of pointers. 17 variables of 4 bytes.
+//(uint8_t*) & gps_struct.latitude,
+//(uint8_t*) & gps_struct.longitude,
 uint8_t *rf_radioPacket[RF_BYTES_IN_PACKET] =
 {
     (uint8_t*) & RF_VALIDATION_HEADER,
     (uint8_t*) & packetIDfloat,
     (uint8_t*) & packetTimeFloatS,
-    (uint8_t*) & gps_lat,
-    (uint8_t*) & gps_lon,
+
     (uint8_t*) & imu_struct.barometro[0], // pressure
     (uint8_t*) & imu_struct.barometro[1], // altitude
     (uint8_t*) & imu_struct.barometro[2], // temperature
@@ -111,7 +113,6 @@ void setup()
 
 // SETUP SD //
     int fileId = 0;
-
     if (sdManager.init())
     {
         DEBUG_PRINT("Inicialização do modulo SD falhou!");
@@ -133,7 +134,7 @@ void setup()
     pmmErrorsAndSignals.init(&rf95, fileId);
 
 // ---- GPS
-    Serial4.begin(115200); //Initialize GPS port at 9600 baudrate.
+    gpsManager.init();
 
 //---------------Setup LORA---------------//
     pinMode(PIN_RFM95_RST, OUTPUT);
@@ -218,7 +219,7 @@ void setup()
     }
 
 //END of Setup  ---------------------------------------------------------------------------------------------------------//
-}Serial4
+}
 
 
 
@@ -254,57 +255,19 @@ void loop()
     if (((abs(imu_struct.acelerometro[0]) < 1) && (abs(imu_struct.acelerometro[1]) < 1) && (abs(imu_struct.acelerometro[2]) < 1)))
     {
         DEBUG_PRINT("RECUPERATION!");
-
-        // pmmErrorsAndSignals.reportRecuperation(packetIDul, sdIsWorking, rfIsWorking);
-
+        pmmErrorsAndSignals.reportRecuperation(packetIDul, sdIsWorking, rfIsWorking);
     }
 
     //---------------GPS Venus---------------//
 
     DEBUG_MAINLOOP_PRINT(6);
-    if (Serial4.available())
-    {
-        while (true)
-        {
-            char ch = Serial4.read();
-            if (ch != '\n' && gps_i < GPS_SENTENCE_SIZE)
-            {
-                gps_sentence[gps_i] = ch;
-                gps_i++;
-            }
-            else
-            {
-                gps_sentence[gps_i] = '\0';
-                gps_i = 0;
-                gps_getField(gps_sentence, gps_stringBuffer, 0);
-                if (strcmp(gps_stringBuffer, "$GPRMC") == 0)
-                {
-                    gps_getField(gps_sentence, gps_stringBuffer, 3);
-                    gps_lat = String(gps_stringBuffer).toFloat();
-                    gps_getField(gps_sentence, gps_stringBuffer, 4);
-                    if (gps_stringBuffer[0] == 'S')
-                        gps_lat = -gps_lat;
-                    #if DEBUG_SERIAL
-                        Serial.print("Lat: "); Serial.print(gps_lat);
-                    #endif
+    gpsManager.updateIfAvailable(gps_struct);
 
-                    gps_getField(gps_sentence, gps_stringBuffer, 5);
-                    gps_lon = String(gps_stringBuffer).toFloat();
-                    gps_getField(gps_sentence, gps_stringBuffer, 6);
-                    if (gps_stringBuffer[0] == 'W')
-                        gps_lon = -gps_lon;
-                    #if DEBUG_SERIAL
-                        Serial.print(" Long: "); Serial.print(gps_lon);
-                    #endif
-                }
-                break;
-            }
-        }
-    }
-    //DEBUG_MAINLOOP_PRINT(7);
+    DEBUG_MAINLOOP_PRINT(7);
 //---------------Code for serial debugging---------------//
-logStringLength = snprintf(logString, LOG_BUFFER_LENGTH, "%lu ,%lu ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f\n",
-        packetIDul,               packetTimeMs,             gps_lat,                    gps_lon,                    imu_struct.barometro[0],
+//gps_struct.latitude,        gps_struct.longitude
+    logStringLength = snprintf(logString, LOG_BUFFER_LENGTH, "%lu ,%lu ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f\n",
+        packetIDul,               packetTimeMs,      0.0       ,    0.0,   imu_struct.barometro[0],
         imu_struct.barometro[1],  imu_struct.barometro[2],  imu_struct.acelerometro[0], imu_struct.acelerometro[1], imu_struct.acelerometro[2],
         imu_struct.giroscopio[0], imu_struct.giroscopio[1], imu_struct.giroscopio[2],   imu_struct.magnetometro[0], imu_struct.magnetometro[1],
         imu_struct.magnetometro[2]);

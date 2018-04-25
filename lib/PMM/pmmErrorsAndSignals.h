@@ -3,6 +3,7 @@
 
 #include <RH_RF95.h>
 #include <pmmConsts.h>
+#include <pmmSd.h>
 
 //--------------Error variables---------------//
 #define ERRORS_ARRAY_SIZE 20
@@ -25,6 +26,7 @@ typedef enum {
 class PmmErrorsAndSignals
 {
 private:
+    SdManager mSdManager;
     RH_RF95 *mRf95Ptr; // Pointer to the RF object
     pmmErrorType mErrorsArray[ERRORS_ARRAY_SIZE]; // Total erros in the system
     int mActualNumberOfErrors; // Total errors in the system number
@@ -33,9 +35,6 @@ private:
     int mSystemWasOk, mSignalIsOn, mSignalStarterCounter, mSignalActualErrorIndex, mSignalActualErrorCounter, mIsShortBeepOfSystemWasOk; // Used updateLedsAndBuzzer
     unsigned long mMillisNextSignalState; // Used updateLedsAndBuzzer
 
-    // Private functions
-    const char* returnPmmErrorString(pmmErrorType errorId);
-    void writelnToSd(char *stringToWrite, char *filename);
 
 public:
     PmmErrorsAndSignals();

@@ -1,9 +1,8 @@
 #include <pmmConsts.h>
 #include <cstring>
 #include <RH_RF95.h>
-#include <SD.h>
 #include <pmmErrorsAndSignals.h>
-
+#include <pmmSd.h>
 /*
 typedef enum {
     OK,
@@ -19,7 +18,7 @@ typedef enum {
     ERRORS_AMOUNT
 } pmmErrorType;
 */
-const char *pmmErrorString[ERRORS_AMOUNT] = {
+char *pmmErrorString[ERRORS_AMOUNT] = {
     "No errors",                // OK,
     "SD init fail",             // ERROR_SD,
     "SD write fail",            // ERROR_SD_WRITE,
@@ -31,7 +30,7 @@ const char *pmmErrorString[ERRORS_AMOUNT] = {
     "Barometer init fail",      // ERROR_BAROMETER_INIT
     "Programming error"         // ERROR_PROGRAMMING
 };
-const char *recuperationActivatedString = "Recuperation Activated!";
+char *recuperationActivatedString = {"Recuperation Activated!"};
 
 
 PmmErrorsAndSignals::PmmErrorsAndSignals()
@@ -46,6 +45,9 @@ void PmmErrorsAndSignals::init(RH_RF95 *rf95Ptr, uint16_t fileID)
     mActualNumberOfErrors = 0;
     snprintf(mFilenameExtra, FILENAME_MAX_LENGTH, "%s%03u%s", FILENAME_BASE_PREFIX, fileID, FILENAME_EXTRA_SUFFIX); // Declaration of the filename of the extra log
 
+    mSdManager.init();
+    void setFilename(char *mFilenameExtra);
+
     mSystemWasOk = mIsShortBeepOfSystemWasOk = 1; mSignalIsOn = mSignalStarterCounter = mSignalActualErrorIndex = mSignalActualErrorCounter = 0;
     mMillisNextSignalState = 0;
 
@@ -58,25 +60,6 @@ void PmmErrorsAndSignals::init(RH_RF95 *rf95Ptr, uint16_t fileID)
     digitalWrite(PIN_LED_ERRORS, LOW);
     digitalWrite(PIN_LED_ALL_OK_AND_RF, HIGH); // Initializes it HIGH.
     digitalWrite(BUZZER_PIN, LOW);
-}
-
-const char* PmmErrorsAndSignals::returnPmmErrorString(pmmErrorType errorId)
-{
-    if (errorId < 0 or errorId >= ERRORS_AMOUNT)
-        return pmmErrorString[ERROR_PROGRAMMING];
-    else
-        return pmmErrorString[errorId];
-}
-
-void PmmErrorsAndSignals::writelnToSd(char *stringToWrite, char *filename)
-{
-    File fileExtra;
-    fileExtra = SD.open(filename, FILE_WRITE);
-    if (fileExtra)
-    {
-        fileExtra.println(stringToWrite);
-        fileExtra.close();
-    }
 }
 
 
@@ -189,17 +172,21 @@ void PmmErrorsAndSignals::updateLedsAndBuzzer()
 }
 
 // [1090;763.312s Error 3: SD]
-void PmmErrorsAndSignals::reportError(pmmErrorType errorID, unsigned long packetID, int sdIsWorking, int rfIsWorking)
+void PmmErrorsAndSignals::reportError(pmmErrorType errorId, unsigned long packetID, int sdIsWorking, int rfIsWorking)
 {
     char errorString[ERROR_STRING_LENGTH];
 
     digitalWrite(PIN_LED_ALL_OK_AND_RF, LOW); // Make sure the All OK Led is Off (or turn it off if first time)
-    snprintf(errorString, ERROR_STRING_LENGTH, "%s[%lu;%.3fs Error %i: %s]", RF_VALIDATION_HEADER_EXTRA, packetID, millis() / 1000.0, errorID, returnPmmErrorString(errorID));
+
+    if (errorId < 0 or errorId >= ERRORS_AMOUNT)
+        errorId = ERROR_PROGRAMMING;
+
+    snprintf(errorString, ERROR_STRING_LENGTH, "%s[%lu;%.3fs Error %i: %s]", RF_VALIDATION_HEADER_EXTRA, packetID, millis() / 1000.0, errorId, pmmErrorString[errorId]);
 
     if (mActualNumberOfErrors < ERRORS_ARRAY_SIZE)
-        mErrorsArray[mActualNumberOfErrors++] = errorID;
+        mErrorsArray[mActualNumberOfErrors++] = errorId;
     if (sdIsWorking)
-        writelnToSd(errorString + 4, mFilenameExtra); // +4 to skip the MNEX header
+        mSdManager.writeToFile(errorString + 4); // +4 to skip the MNEX header
     if (rfIsWorking)
         mRf95Ptr->send((uint8_t*)errorString, strlen(errorString)); // \0 isn't sent.
 }
@@ -211,7 +198,7 @@ void PmmErrorsAndSignals::reportRecuperation(unsigned long packetID, int sdIsWor
     snprintf(recuperationString, ERROR_STRING_LENGTH, "%s[%lu;%.3fs %s]", RF_VALIDATION_HEADER_EXTRA, packetID, millis() / 1000.0, recuperationActivatedString);
     digitalWrite(PIN_LED_RECOVERY, HIGH);
     if (sdIsWorking)
-        writelnToSd(recuperationString + 4, mFilenameExtra); // +4 to skip the MNEX header
+        mSdManager.writeToFile(recuperationString + 4); // +4 to skip the MNEX header
     if (rfIsWorking)
         mRf95Ptr->send((uint8_t*)recuperationString, strlen(recuperationString)); // \0 isn't sent.
 
