@@ -3,8 +3,21 @@
 
 #include <pmmConsts.h>
 #include <NMEAGPS.h>
+// Status,UTC Date/Time,Lat,Lon,Hdg,Spd,Alt,Sats,Rx ok,Rx err,Rx chars,
 
-typedef gps_fix Gps_structType;
+typedef struct // Speed are in meters/s
+{
+    float latitude;
+    float longitude;
+    float altitude;
+    float horizontalSpeed;
+    float speedNorth;
+    float speedEast;
+    float speedDown;
+    float headingDegree;
+    float satellites;
+} Gps_structType; //IMU Structure
+
 class GpsManager
 {
 private:
@@ -17,12 +30,13 @@ private:
     //  Define a set of GPS fix information.  It will hold on to the various pieces as they are received from
     //  an RMC sentence.  It can be used anywhere in your sketch.
     gps_fix mFix;
+    // Gps_structType mGps_struct;
 
 public:
     GpsManager();
     int init();
-    int updateIfAvailable(gps_fix fix);
-    void doSomeWork();
+    int updateIfAvailable(Gps_structType *gps_struct);
+    //void doSomeWork();
 };
 
 #endif

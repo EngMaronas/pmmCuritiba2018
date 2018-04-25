@@ -81,15 +81,31 @@ int GpsManager::init()
     return 0;
 }
 
-int GpsManager::updateIfAvailable(gps_fix fix)
+int GpsManager::updateIfAvailable(Gps_structType *gps_struct)
 {
     int hadUpdate = 0;
     while (mGps.available(gpsPort))
     {
         mFix = mGps.read();
-        doSomeWork();
+        //doSomeWork();
         if (!hadUpdate)
-            hadUpdate = 0;
+            hadUpdate = 1;
+    }
+
+    if (hadUpdate)
+    {
+        gps_struct->latitude = mFix.latitude();
+        gps_struct->longitude = mFix.longitude();
+
+        mFix.calculateNorthAndEastVelocityFromSpeedAndHeading();
+
+        gps_struct->altitude = mFix.altitude();
+        gps_struct->horizontalSpeed = mFix.speed_metersps();
+        gps_struct->speedNorth = mFix.velocity_north;
+        gps_struct->speedEast = mFix.velocity_east;
+        gps_struct->speedDown = mFix.velocity_downF();
+        gps_struct->headingDegree = mFix.heading();
+        gps_struct->satellites = (float) mFix.satellites;
     }
     return hadUpdate;
 }
@@ -101,11 +117,11 @@ int GpsManager::updateIfAvailable(gps_fix fix)
 //  a while: print a bunch of things, write to SD, send an SMS, etc.
 //  By doing the "hard" work during the quiet time, the CPU can get back to reading the GPS chars as they come in, so that no chars are lost.
 
-void GpsManager::doSomeWork()
-{
+//void GpsManager::doSomeWork()
+//{
   // Print all the things!
-  trace_all(DEBUG_PORT, mGps, mFix);
-} // doSomeWork
+  //trace_all(DEBUG_PORT, mGps, mFix);
+//} // doSomeWork
 
 
 

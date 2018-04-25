@@ -1,6 +1,6 @@
 #ifndef GPSFIX_H
 #define GPSFIX_H
-
+// CHANGED BY HENRIQUE BRUNO
 //  Copyright (C) 2014-2017, SlashDevin
 //
 //  This file is part of NeoGPS
@@ -128,19 +128,20 @@ public:
   #endif
 
   #ifdef GPS_FIX_VELNED
-    int32_t  velocity_north;    // cm/s
-    int32_t  velocity_east;     // cm/s
-    int32_t  velocity_down;     // cm/s
-
+    float  velocity_north;    // cm/s // CHANGED TO m/s
+    float  velocity_east;     // cm/s // CHANGED TO m/s
+    float  velocity_down;     // cm/s // CHANGED TO m/s
+    float  velocity_downF() const { return velocity_down/100.0; };
     void calculateNorthAndEastVelocityFromSpeedAndHeading()
     {
       #if defined( GPS_FIX_HEADING ) && defined( GPS_FIX_SPEED )
         if (valid.heading && valid.speed && valid.velned) {
 
           float course         = heading() * NeoGPS::Location_t::RAD_PER_DEG;
-          float speed_cm_per_s = speed_metersph() * (100.0 / 3600.0);
-          velocity_north = round( speed_cm_per_s * cos( course ) );
-          velocity_east  = round( speed_cm_per_s * sin( course ) );
+          float speed_meter_per_s = speed_metersps();
+          velocity_north = speed_meter_per_s * cos( course );
+          velocity_east  = speed_meter_per_s * sin( course );
+
           // velocity_down has already been set.
 
         }
@@ -160,6 +161,8 @@ public:
 
     CONST_CLASS_DATA uint32_t M_PER_NMI = 1852;
     uint32_t speed_metersph() const { return (spd.whole * M_PER_NMI) + (spd.frac * M_PER_NMI)/1000; };
+
+    float    speed_metersps () const { return ((spd.whole * M_PER_NMI) + (spd.frac * M_PER_NMI)/1000)/3600.0; };
 
     CONST_CLASS_DATA float MI_PER_NMI = 1.150779;
     float  speed_mph() const { return speed() * MI_PER_NMI; };

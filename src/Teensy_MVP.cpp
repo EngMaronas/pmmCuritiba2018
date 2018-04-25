@@ -80,14 +80,23 @@ IMU_s *imu_pstruct = &imu_struct;
 float lastAltitude;
 
 // An array of pointers. 17 variables of 4 bytes.
-//(uint8_t*) & gps_struct.latitude,
-//(uint8_t*) & gps_struct.longitude,
+
 uint8_t *rf_radioPacket[RF_BYTES_IN_PACKET] =
 {
     (uint8_t*) & RF_VALIDATION_HEADER,
     (uint8_t*) & packetIDfloat,
     (uint8_t*) & packetTimeFloatS,
-
+    (uint8_t*) & gps_struct.latitude,
+    (uint8_t*) & gps_struct.longitude,
+    (uint8_t*) & gps_struct.latitude,
+    (uint8_t*) & gps_struct.longitude,
+    (uint8_t*) & gps_struct.altitude,
+    (uint8_t*) & gps_struct.horizontalSpeed,
+    (uint8_t*) & gps_struct.speedNorth,
+    (uint8_t*) & gps_struct.speedEast,
+    (uint8_t*) & gps_struct.speedDown,
+    (uint8_t*) & gps_struct.headingDegree,
+    (uint8_t*) & gps_struct.satellites,
     (uint8_t*) & imu_struct.barometro[0], // pressure
     (uint8_t*) & imu_struct.barometro[1], // altitude
     (uint8_t*) & imu_struct.barometro[2], // temperature
@@ -261,16 +270,17 @@ void loop()
     //---------------GPS Venus---------------//
 
     DEBUG_MAINLOOP_PRINT(6);
-    gpsManager.updateIfAvailable(gps_struct);
+    gpsManager.updateIfAvailable(&gps_struct);
 
     DEBUG_MAINLOOP_PRINT(7);
 //---------------Code for serial debugging---------------//
 //gps_struct.latitude,        gps_struct.longitude
-    logStringLength = snprintf(logString, LOG_BUFFER_LENGTH, "%lu ,%lu ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f\n",
-        packetIDul,               packetTimeMs,      0.0       ,    0.0,   imu_struct.barometro[0],
-        imu_struct.barometro[1],  imu_struct.barometro[2],  imu_struct.acelerometro[0], imu_struct.acelerometro[1], imu_struct.acelerometro[2],
-        imu_struct.giroscopio[0], imu_struct.giroscopio[1], imu_struct.giroscopio[2],   imu_struct.magnetometro[0], imu_struct.magnetometro[1],
-        imu_struct.magnetometro[2]);
+    logStringLength = snprintf(logString, LOG_BUFFER_LENGTH, "%lu ,%lu ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f\n",
+        packetIDul,              packetTimeMs,               gps_struct.latitude,        gps_struct.longitude,       gps_struct.latitude,
+        gps_struct.longitude,    gps_struct.altitude,        gps_struct.horizontalSpeed, gps_struct.speedNorth,      gps_struct.speedEast,
+        gps_struct.speedDown,    gps_struct.headingDegree,   gps_struct.satellites,      imu_struct.barometro[0],    imu_struct.barometro[1],
+        imu_struct.barometro[2], imu_struct.acelerometro[0], imu_struct.acelerometro[1], imu_struct.acelerometro[2], imu_struct.giroscopio[0],
+        imu_struct.giroscopio[1], imu_struct.giroscopio[2],   imu_struct.magnetometro[0], imu_struct.magnetometro[1],imu_struct.magnetometro[2]);
 
     #if DEBUG_SERIAL
         Serial.print(logString);
