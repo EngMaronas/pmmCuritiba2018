@@ -17,9 +17,9 @@
 typedef struct
 {
     float acelerometro[3]; //Posicoes 1,2,3, respectivamente sao as Aceleracoes em x,y,z
-    int magnetometro[3]; //Posicoes 1,2,3, respectivamente sao as Campos Magneticos em x,y,z
-    int giroscopio[3]; //Posicoes 1, 2, 3, respectivamente sao a velocidade angular em x,y,z
-    double barometro[3]; //Posicoes 1,2,3 respectivamente sao Pressao, Altura e Temperatura
+    float magnetometro[3]; //Posicoes 1,2,3, respectivamente sao as Campos Magneticos em x,y,z
+    float giroscopio[3]; //Posicoes 1, 2, 3, respectivamente sao a velocidade angular em x,y,z
+    float barometro[3]; //Posicoes 1,2,3 respectivamente sao Pressao, Altura e Temperatura
 }IMU_s; //IMU Structure
 
 //Functions headers

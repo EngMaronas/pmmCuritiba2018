@@ -16,9 +16,9 @@ L3G gyro;
 int GetGyro(IMU_s *imu) {
     gyro.read();
 
-    imu->giroscopio[0] = gyro.g.x;
-    imu->giroscopio[1] = gyro.g.y;
-    imu->giroscopio[2] = gyro.g.z;
+    imu->giroscopio[0] = (float) gyro.g.x;
+    imu->giroscopio[1] = (float) gyro.g.y;
+    imu->giroscopio[2] = (float) gyro.g.z;
     return 0;
 }
 
@@ -36,9 +36,9 @@ int GetMag(IMU_s *imu) {
     sensors_event_t event;
     mag.getEvent(&event);
 
-    imu->magnetometro[0] = event.magnetic.x;
-    imu->magnetometro[1] = event.magnetic.y;
-    imu->magnetometro[2] = event.magnetic.z;
+    imu->magnetometro[0] = (float) event.magnetic.x;
+    imu->magnetometro[1] = (float) event.magnetic.y;
+    imu->magnetometro[2] = (float) event.magnetic.z;
     return 0;
 }
 
@@ -50,9 +50,9 @@ int GetBMP(IMU_s *imu) {
     bmp.getEvent(&event);
     bmp.getTemperature(&temperature);
 
-    imu->barometro[0] = event.pressure;
-    imu->barometro[1] = bmp.pressureToAltitude(seaLevelPressure, event.pressure);
-    imu->barometro[2] = temperature;
+    imu->barometro[0] = (float) event.pressure;
+    imu->barometro[1] = (float) bmp.pressureToAltitude(seaLevelPressure, event.pressure);
+    imu->barometro[2] = (float) temperature;
     return 0;
 }
 

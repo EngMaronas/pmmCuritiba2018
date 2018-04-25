@@ -4,17 +4,6 @@
 #include <SD.h>
 #include <pmmErrorsAndSignals.h>
 
-//----------------Buzzer------------------------//
-#if BUZZER_ACTIVATED
-/*
-    if ((millis() - buzzer_lastTime > 1000 * (1 / BUZZER_OK_FREQ)))
-    {
-        digitalWrite(BUZZER_PIN, (buzzer_status = !buzzer_status));
-        buzzer_lastTime = millis();
-    }
-*/
-#endif
-
 /*
 typedef enum {
     OK,
@@ -55,7 +44,7 @@ void PmmErrorsAndSignals::init(RH_RF95 *rf95Ptr, uint16_t fileID)
     // Init variables values
     mRf95Ptr = rf95Ptr;
     mActualNumberOfErrors = 0;
-    snprintf(mFilenameExtra, FILENAME_MAX_LENGTH, "%s%03u%s%s", FILENAME_BASE_PREFIX, fileID, FILENAME_EXTRA_SUFFIX, FILENAME_EXTRA_EXTENSION); // Declaration of the filename of the extra log
+    snprintf(mFilenameExtra, FILENAME_MAX_LENGTH, "%s%03u%s", FILENAME_BASE_PREFIX, fileID, FILENAME_EXTRA_SUFFIX); // Declaration of the filename of the extra log
 
     mSystemWasOk = mIsShortBeepOfSystemWasOk = 1; mSignalIsOn = mSignalStarterCounter = mSignalActualErrorIndex = mSignalActualErrorCounter = 0;
     mMillisNextSignalState = 0;
@@ -89,8 +78,6 @@ void PmmErrorsAndSignals::writelnToSd(char *stringToWrite, char *filename)
         fileExtra.close();
     }
 }
-
-
 
 
 //       ..........     ..........
@@ -208,7 +195,7 @@ void PmmErrorsAndSignals::reportError(pmmErrorType errorID, unsigned long packet
 
     digitalWrite(PIN_LED_ALL_OK_AND_RF, LOW); // Make sure the All OK Led is Off (or turn it off if first time)
     snprintf(errorString, ERROR_STRING_LENGTH, "%s[%lu;%.3fs Error %i: %s]", RF_VALIDATION_HEADER_EXTRA, packetID, millis() / 1000.0, errorID, returnPmmErrorString(errorID));
-    Serial.println(errorString); //Initialize Serial Port at 9600 baudrate. // debug
+
     if (mActualNumberOfErrors < ERRORS_ARRAY_SIZE)
         mErrorsArray[mActualNumberOfErrors++] = errorID;
     if (sdIsWorking)

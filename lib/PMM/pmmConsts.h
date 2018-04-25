@@ -1,8 +1,6 @@
 #ifndef PMM_CONST_h
 #define PMM_CONST_h
 
-
-
 #define DEBUG_SERIAL 1
 
 #if DEBUG_SERIAL
@@ -44,7 +42,10 @@ const char RF_VALIDATION_HEADER_EXTRA[5] = {"MNEX"};
 
 // --------------- SD ----------------//
 #define FILENAME_MAX_LENGTH 20
+#define LOG_BUFFER_LENGTH 1000
+//#define SD_CHIP_SELECT BUILTIN_SDCARD // Change if different SD card
 
+// Below unused, remove when all ok.
 // Max of 12 chars (13 with \0, SD.h nonsenses)
 // 123456789012|
 // PMM_000e.csv
@@ -54,10 +55,8 @@ const char RF_VALIDATION_HEADER_EXTRA[5] = {"MNEX"};
 #define DELAY_MS_BAROMETER 50
 #define DELAY_MS_RF 130
 
-const char FILENAME_BASE_PREFIX[] = "PMM_";
-const char FILENAME_EXTRA_SUFFIX[] = "e";
-const char FILENAME_BASE_EXTENSION[] = ".csv";
-const char FILENAME_EXTRA_EXTENSION[] = ".txt";
-
+const char FILENAME_BASE_PREFIX[] = {"PMM_"};
+const char FILENAME_BASE_SUFFIX[] = {".csv"};
+const char FILENAME_EXTRA_SUFFIX[] = {"e.txt"};
 
 #endif
