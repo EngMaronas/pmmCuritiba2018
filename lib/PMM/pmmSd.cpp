@@ -46,7 +46,6 @@ int SdManager::setFilenameAutoId(const char* baseName, const char* suffix)
     while (true)
     {
         snprintf(mFilename, FILENAME_MAX_LENGTH, "%s%03u%s", baseName, fileID, suffix); // %03u to make the file id at least 3 digits.
-        Serial.println(mFilename);
         if (mSdEx.exists(mFilename))
             fileID++;
         else

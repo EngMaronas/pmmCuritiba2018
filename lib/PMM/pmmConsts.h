@@ -22,7 +22,7 @@
 #define PIN_RFM95_RST 17
 #define PIN_RFM95_INT 16
 #define RF95_FREQ 915.0
-#define RF_WORDS_IN_PACKET 17
+#define RF_WORDS_IN_PACKET 24
 #define RF_BYTES_IN_PACKET (RF_WORDS_IN_PACKET * 4)
 #define RF_INIT_MAX_TRIES 20
 const char RF_VALIDATION_HEADER[4] = {'V', 'R', 'N', 'M'}; // Make sure that there is no NULL-terminator char. This one is inverted, as it will sent inverted (little-endian).
@@ -53,7 +53,7 @@ const char RF_VALIDATION_HEADER_EXTRA[5] = {"MNEX"};
 //-------------- DELAY ---------------//
 #define DELAY_MS_RECUPERATION_CHECK 100
 #define DELAY_MS_BAROMETER 50
-#define DELAY_MS_RF 130
+#define DELAY_MS_RF 180
 
 const char FILENAME_BASE_PREFIX[] = {"PMM_"};
 const char FILENAME_BASE_SUFFIX[] = {".csv"};

@@ -44,7 +44,6 @@
 #include <GY80TEENSY.h>
 #include <RH_RF95.h>
 #include <pmmConsts.h>
-#include <pmmGeneralFunctions.h>
 #include <pmmGps.h>
 #include <pmmSd.h>
 #include <pmmErrorsAndSignals.h>
@@ -86,8 +85,6 @@ uint8_t *rf_radioPacket[RF_BYTES_IN_PACKET] =
     (uint8_t*) & RF_VALIDATION_HEADER,
     (uint8_t*) & packetIDfloat,
     (uint8_t*) & packetTimeFloatS,
-    (uint8_t*) & gps_struct.latitude,
-    (uint8_t*) & gps_struct.longitude,
     (uint8_t*) & gps_struct.latitude,
     (uint8_t*) & gps_struct.longitude,
     (uint8_t*) & gps_struct.altitude,
@@ -275,8 +272,8 @@ void loop()
     DEBUG_MAINLOOP_PRINT(7);
 //---------------Code for serial debugging---------------//
 //gps_struct.latitude,        gps_struct.longitude
-    logStringLength = snprintf(logString, LOG_BUFFER_LENGTH, "%lu ,%lu ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f\n",
-        packetIDul,              packetTimeMs,               gps_struct.latitude,        gps_struct.longitude,       gps_struct.latitude,
+    logStringLength = snprintf(logString, LOG_BUFFER_LENGTH, "%lu ,%lu ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f\n",
+        packetIDul,              packetTimeMs,               gps_struct.latitude,
         gps_struct.longitude,    gps_struct.altitude,        gps_struct.horizontalSpeed, gps_struct.speedNorth,      gps_struct.speedEast,
         gps_struct.speedDown,    gps_struct.headingDegree,   gps_struct.satellites,      imu_struct.barometro[0],    imu_struct.barometro[1],
         imu_struct.barometro[2], imu_struct.acelerometro[0], imu_struct.acelerometro[1], imu_struct.acelerometro[2], imu_struct.giroscopio[0],
