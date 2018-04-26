@@ -195,7 +195,7 @@ void setup()
 //END of Setup Modulo SD--------------------------------//
 
     DEBUG_PRINT("\nMinerva Rockets - UFRJ");
-    DEBUG_PRINT("PacketID, Time(ms), Latitude, Longitude, Pressure (hPa), Altitude (m), Temperature (C), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s)");
+    DEBUG_PRINT(SD_LOG_HEADER);
 
 
 //-------------- IMU's Init ----------------------------//

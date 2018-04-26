@@ -288,13 +288,13 @@ bool RH_RF95::send(const uint8_t* data, uint8_t len)
 */
 bool RH_RF95::sendArrayOfPointersOf4Bytes(uint8_t** data, uint8_t number4BytesVariables)
 {
-    unsigned long timeTo = millis();
+    //unsigned long timeTo = millis();
     waitPacketSent(); // Make sure we dont interrupt an outgoing message
     setModeIdle();
 
     if (!waitCAD())
 	return false;  // Check channel activity
-    Serial.print(millis() - timeTo); Serial.println("ms idle");
+    //Serial.print(millis() - timeTo); Serial.println("ms idle");
     // Position at the beginning of the FIFO
     spiWrite(RH_RF95_REG_0D_FIFO_ADDR_PTR, 0);
     // The headers

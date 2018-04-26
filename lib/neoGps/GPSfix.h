@@ -135,14 +135,15 @@ public:
     void calculateNorthAndEastVelocityFromSpeedAndHeading()
     {
       #if defined( GPS_FIX_HEADING ) && defined( GPS_FIX_SPEED )
-        if (valid.heading && valid.speed && valid.velned) {
+        Serial.print("validHeading = "); Serial.print(valid.heading);Serial.print("; validSpeed = "); Serial.print(valid.heading) ;Serial.print("; validVelNed = ");Serial.println(valid.heading);
+        if (valid.heading && valid.speed && valid.velned)
+        {
 
-          float course         = heading() * NeoGPS::Location_t::RAD_PER_DEG;
-          float speed_meter_per_s = speed_metersps();
-          velocity_north = speed_meter_per_s * cos( course );
-          velocity_east  = speed_meter_per_s * sin( course );
-
-          // velocity_down has already been set.
+            float headingInRad      = heading() * NeoGPS::Location_t::RAD_PER_DEG;
+            float speed_meter_per_s = speed_metersps();
+            velocity_north = speed_meter_per_s * cos (headingInRad);
+            velocity_east  = speed_meter_per_s * sin (headingInRad);
+            // velocity_down has already been set.
 
         }
       #endif
