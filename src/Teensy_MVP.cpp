@@ -273,11 +273,11 @@ void loop()
 //---------------Code for serial debugging---------------//
 //gps_struct.latitude,        gps_struct.longitude
     logStringLength = snprintf(logString, LOG_BUFFER_LENGTH, "%lu ,%lu ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f\n",
-        packetIDul,              packetTimeMs,               gps_struct.latitude,
-        gps_struct.longitude,    gps_struct.altitude,        gps_struct.horizontalSpeed, gps_struct.speedNorth,      gps_struct.speedEast,
-        gps_struct.speedDown,    gps_struct.headingDegree,   gps_struct.satellites,      imu_struct.barometro[0],    imu_struct.barometro[1],
-        imu_struct.barometro[2], imu_struct.acelerometro[0], imu_struct.acelerometro[1], imu_struct.acelerometro[2], imu_struct.giroscopio[0],
-        imu_struct.giroscopio[1], imu_struct.giroscopio[2],   imu_struct.magnetometro[0], imu_struct.magnetometro[1],imu_struct.magnetometro[2]);
+        packetIDul,                 packetTimeMs,               gps_struct.latitude,        gps_struct.longitude,       gps_struct.altitude,
+        gps_struct.horizontalSpeed, gps_struct.speedNorth,      gps_struct.speedEast,       gps_struct.speedDown,       gps_struct.headingDegree,
+        gps_struct.satellites,      imu_struct.barometro[0],    imu_struct.barometro[1],    imu_struct.barometro[2],    imu_struct.acelerometro[0],
+        imu_struct.acelerometro[1], imu_struct.acelerometro[2], imu_struct.giroscopio[0],   imu_struct.giroscopio[1],   imu_struct.giroscopio[2],
+        imu_struct.magnetometro[0], imu_struct.magnetometro[1], imu_struct.magnetometro[2]);
 
     #if DEBUG_SERIAL
         Serial.print(logString);
