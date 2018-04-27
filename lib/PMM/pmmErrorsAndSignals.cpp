@@ -30,7 +30,7 @@ char *pmmErrorString[ERRORS_AMOUNT] = {
     "Barometer init fail",      // ERROR_BAROMETER_INIT
     "Programming error"         // ERROR_PROGRAMMING
 };
-char *recuperationActivatedString = {"Recuperation Activated!"};
+char recuperationActivatedString[] = "Recuperation Activated!";
 
 
 PmmErrorsAndSignals::PmmErrorsAndSignals()

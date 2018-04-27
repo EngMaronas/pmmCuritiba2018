@@ -79,6 +79,7 @@ int GpsManager::init()
 {
     Serial4.begin(9600);
     return 0;
+    mTempLastReadMillis = 0;
 }
 
 int GpsManager::updateIfAvailable(Gps_structType *gps_struct)
@@ -94,6 +95,8 @@ int GpsManager::updateIfAvailable(Gps_structType *gps_struct)
 
     if (hadUpdate)
     {
+        mTempLastReadMillis = millis();
+        mLastAltitude = gps_struct->altitude;
         gps_struct->latitude = mFix.latitude();
         gps_struct->longitude = mFix.longitude();
 
@@ -101,11 +104,12 @@ int GpsManager::updateIfAvailable(Gps_structType *gps_struct)
 
         gps_struct->altitude = mFix.altitude();
         gps_struct->horizontalSpeed = mFix.speed_metersps();
-        gps_struct->speedNorth = mFix.velocity_north;
-        gps_struct->speedEast = mFix.velocity_east;
-        gps_struct->speedDown = mFix.velocity_downF();
+        gps_struct->speedNorth = mFix.velocity_northF();
+        gps_struct->speedEast = mFix.velocity_eastF();
+        gps_struct->speedUp = ((gps_struct->altitude - mLastAltitude) / ((mTempLastReadMillis - gps_struct->lastReadMillis) / 1000.0)); // mFix.velocity_downF();
         gps_struct->headingDegree = mFix.heading();
         gps_struct->satellites = (float) mFix.satellites;
+        gps_struct->lastReadMillis = mTempLastReadMillis;
     }
     return hadUpdate;
 }

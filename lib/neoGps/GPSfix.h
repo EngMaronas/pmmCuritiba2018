@@ -127,26 +127,29 @@ public:
     float   altitude_ft() const { return altitude() * 3.28084; };
   #endif
 
-  #ifdef GPS_FIX_VELNED
+  #if defined( GPS_FIX_HEADING ) && defined( GPS_FIX_SPEED )  && defined ( GPS_FIX_VELNED )
     float  velocity_north;    // cm/s // CHANGED TO m/s
     float  velocity_east;     // cm/s // CHANGED TO m/s
     float  velocity_down;     // cm/s // CHANGED TO m/s
+    float  velocity_eastF() const { return velocity_east; };
+    float  velocity_northF() const { return velocity_north; };
     float  velocity_downF() const { return velocity_down/100.0; };
     void calculateNorthAndEastVelocityFromSpeedAndHeading()
     {
-      #if defined( GPS_FIX_HEADING ) && defined( GPS_FIX_SPEED )
-        Serial.print("validHeading = "); Serial.print(valid.heading);Serial.print("; validSpeed = "); Serial.print(valid.heading) ;Serial.print("; validVelNed = ");Serial.println(valid.heading);
-        if (valid.heading && valid.speed && valid.velned)
+        Serial.print("validHeading = "); Serial.print(valid.heading);Serial.print("; validSpeed = "); Serial.print(valid.speed) ;Serial.print("; validVelNed = ");Serial.println(valid.velned);
+        if (valid.heading && valid.speed)
         {
-
             float headingInRad      = heading() * NeoGPS::Location_t::RAD_PER_DEG;
             float speed_meter_per_s = speed_metersps();
+
             velocity_north = speed_meter_per_s * cos (headingInRad);
             velocity_east  = speed_meter_per_s * sin (headingInRad);
+
+            Serial.print("Heading in RAD : "); Serial.print(headingInRad); Serial.print("; SpeedMps : "); Serial.print(speed_meter_per_s);
+            Serial.print("SpeedNorth : "); Serial.print(velocity_north); Serial.print("; SpeedEast : "); Serial.println(velocity_east);
             // velocity_down has already been set.
 
         }
-      #endif
     }
   #endif
 
@@ -376,8 +379,8 @@ public:
     #endif
 
     #ifdef GPS_FIX_VELNED
-      velocity_north =
-      velocity_east  =
+      velocity_north = 0;
+      velocity_east  = 0;
       velocity_down  = 0;
     #endif
 

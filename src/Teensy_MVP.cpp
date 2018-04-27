@@ -69,7 +69,7 @@ Gps_structType gps_struct;
 SdManager sdManager;
 char logString[LOG_BUFFER_LENGTH];
 int32_t logStringLength;
-char SD_LOG_HEADER[] = {"sep =, \nPacketID, Time(ms), Latitude, Longitude, Pressure (hPa), Altitude (m), Temperature (C), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s)"}; //This line handles Excel CSV configuration.
+char SD_LOG_HEADER[] = {"sep =, \nPacketID, Time(ms), Latitude, Longitude, Altitude (m), Pressure (hPa), Altitude (m), Temperature (C), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s)"}; //This line handles Excel CSV configuration.
 
 //------------ IMU Struct Declaration ------------//
 IMU_s imu_struct;
@@ -91,7 +91,7 @@ uint8_t *rf_radioPacket[RF_BYTES_IN_PACKET] =
     (uint8_t*) & gps_struct.horizontalSpeed,
     (uint8_t*) & gps_struct.speedNorth,
     (uint8_t*) & gps_struct.speedEast,
-    (uint8_t*) & gps_struct.speedDown,
+    (uint8_t*) & gps_struct.speedUp,
     (uint8_t*) & gps_struct.headingDegree,
     (uint8_t*) & gps_struct.satellites,
     (uint8_t*) & imu_struct.barometro[0], // pressure
@@ -272,9 +272,9 @@ void loop()
     DEBUG_MAINLOOP_PRINT(7);
 //---------------Code for serial debugging---------------//
 //gps_struct.latitude,        gps_struct.longitude
-    logStringLength = snprintf(logString, LOG_BUFFER_LENGTH, "%lu ,%lu ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f\n",
+    logStringLength = snprintf(logString, LOG_BUFFER_LENGTH, "%lu ,%lu ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%0.f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f ,%f\n",
         packetIDul,                 packetTimeMs,               gps_struct.latitude,        gps_struct.longitude,       gps_struct.altitude,
-        gps_struct.horizontalSpeed, gps_struct.speedNorth,      gps_struct.speedEast,       gps_struct.speedDown,       gps_struct.headingDegree,
+        gps_struct.horizontalSpeed, gps_struct.speedNorth,      gps_struct.speedEast,       gps_struct.speedUp,       gps_struct.headingDegree,
         gps_struct.satellites,      imu_struct.barometro[0],    imu_struct.barometro[1],    imu_struct.barometro[2],    imu_struct.acelerometro[0],
         imu_struct.acelerometro[1], imu_struct.acelerometro[2], imu_struct.giroscopio[0],   imu_struct.giroscopio[1],   imu_struct.giroscopio[2],
         imu_struct.magnetometro[0], imu_struct.magnetometro[1], imu_struct.magnetometro[2]);
