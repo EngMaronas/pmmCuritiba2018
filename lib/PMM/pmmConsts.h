@@ -3,8 +3,6 @@
 
 #define DEBUG_SERIAL 1
 
-
-
 #if DEBUG_SERIAL
     #define DEBUG_PRINT(x) Serial.println(x)
 #else

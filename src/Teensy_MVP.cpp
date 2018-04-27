@@ -69,7 +69,7 @@ Gps_structType gps_struct;
 SdManager sdManager;
 char logString[LOG_BUFFER_LENGTH];
 int32_t logStringLength;
-char SD_LOG_HEADER[] = {"sep =, \nPacketID, Time(ms), Latitude, Longitude, Altitude (m), Pressure (hPa), Altitude (m), Temperature (C), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), MagnetoX (T/s), MagnetoY (T/s), MagnetoZ (T/s)"}; //This line handles Excel CSV configuration.
+char SD_LOG_HEADER[] = {"sep =, \nPacketID, Time(ms), Latitude, Longitude, Altitude GPS (m), Horizontal Velocity (m/s), North Velocity (m/s), East Velocity (m/s), Up Velocity (m/s), Heading Degree (°), Satellites, Pressure (hPa), Altitude (m), Temperature (°C), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), MagnetoX (uT/s), MagnetoY (uT/s), MagnetoZ (uT/s)"}; //This line handles Excel CSV configuration.
 
 //------------ IMU Struct Declaration ------------//
 IMU_s imu_struct;
@@ -220,11 +220,8 @@ void setup()
         DEBUG_PRINT("MAGNETOMETER INIT ERROR");
         pmmErrorsAndSignals.reportError(ERROR_MAGNETOMETER_INIT, 0, sdIsWorking, rfIsWorking);
     }
-
 //END of Setup  ---------------------------------------------------------------------------------------------------------//
 }
-
-
 
 void loop()
 {
@@ -255,6 +252,7 @@ void loop()
     DEBUG_MAINLOOP_PRINT(5);
 
     //---------------Recuperação---------------//
+
     if (((abs(imu_struct.acelerometro[0]) < 1) && (abs(imu_struct.acelerometro[1]) < 1) && (abs(imu_struct.acelerometro[2]) < 1)))
     {
         DEBUG_PRINT("RECUPERATION ACTIVATED!");
