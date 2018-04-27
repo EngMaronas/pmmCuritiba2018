@@ -121,12 +121,12 @@ void setup()
     int fileId = 0;
     if (sdManager.init())
     {
-        DEBUG_PRINT("Inicialização do modulo SD falhou!");
+        DEBUG_PRINT("SD init FAILED!");
         sdIsWorking = 0;
     }
     else
     {
-        DEBUG_PRINT("Inicialização do modulo SD concluída.");
+        DEBUG_PRINT("SD init successful.");
         fileId = sdManager.setFilenameAutoId(FILENAME_BASE_PREFIX, FILENAME_BASE_SUFFIX);
         #if DEBUG_SERIAL
             char tempFilename[FILENAME_MAX_LENGTH];
@@ -152,8 +152,7 @@ void setup()
     while (!(rfIsWorking = rf95.init()) and (rf_initCounter++ < RF_INIT_MAX_TRIES))
     {
         #if DEBUG_SERIAL
-            Serial.print("LoRa nao inicializou, tentativa n"); Serial.println(rf_initCounter);
-            Serial.println("Realizando nova tentativa...");
+            Serial.print("LoRa didn't initialized, attempt number "); Serial.println(rf_initCounter);
         #endif
     }
 
@@ -164,15 +163,13 @@ void setup()
     {
         if (!(rfIsWorking = rf95.setFrequency(RF95_FREQ)))
         {
-            DEBUG_PRINT("setFrequency falhou!");
-
+            DEBUG_PRINT("LoRa setFrequency failed!");
             pmmErrorsAndSignals.reportError(ERROR_RF_SET_FREQ, 0, sdIsWorking, rfIsWorking);
         }
         else // if RF is working
         {
             rf95.setTxPower(23, false);
-            DEBUG_PRINT("LoRa inicializado!");
-
+            DEBUG_PRINT("LoRa initialized successfully!");
         }
     }
 //END of Setup LORA-----------------------//
@@ -260,7 +257,7 @@ void loop()
     //---------------Recuperação---------------//
     if (((abs(imu_struct.acelerometro[0]) < 1) && (abs(imu_struct.acelerometro[1]) < 1) && (abs(imu_struct.acelerometro[2]) < 1)))
     {
-        DEBUG_PRINT("RECUPERATION!");
+        DEBUG_PRINT("RECUPERATION ACTIVATED!");
         pmmErrorsAndSignals.reportRecuperation(packetIDul, sdIsWorking, rfIsWorking);
     }
 
