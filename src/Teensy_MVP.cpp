@@ -75,8 +75,21 @@ char SD_LOG_HEADER[] = {"sep =, \nPacketID, Time(ms), Latitude, Longitude, Altit
 IMU_s imu_struct;
 IMU_s *imu_pstruct = &imu_struct;
 
-//---------------- Recuperation ------------------//
-float lastAltitude;
+//Moving average variables
+#define RECOVERY_AVERAGE_LENGTH 5 //Size of samples for moving average code
+float recHolder; //Value holder need to exchage values in vector
+float recHolder2; //Value holder need to exchage values in vector
+int movingAverageCount = 0; //Counter to reset the moving average iteration
+float barometerFiltered; //Final value of average represented by sum of all vector altitude and dividing it by RECOVERY_AVERAGE_LENGTH
+
+//---------------- Recovery ------------------//
+#define REC_COUNT_NEEDED 8 //3 cycles of barometerDelay + 5 counters for recovery
+float recThreshold = 0.05; //Altitude difference for recovery counting
+float lastAltitude; //Last altitude logged, used for recovery code
+bool recoveryActivated = 0; //Boolean reporting if recovery was activated
+int recCount = 0; //Counter for recovery code, if recCount > REC_COUNT_NEEDED, then recovery is activated
+int recLevel = 0; //Variable for next step in code, using recursion for recovery code, not implemented yet
+float recBuffer[RECOVERY_AVERAGE_LENGTH]; //Array holding the barometer values for the moving average code
 
 // An array of pointers. 17 variables of 4 bytes.
 
@@ -236,6 +249,34 @@ void loop()
         nextMillis_barometer = millis() + DELAY_MS_BAROMETER;
         if (baroIsWorking)
             GetBMP(imu_pstruct); //Fills the BMP085 module information into the IMU structure
+
+            //Moving Average code
+          for (int n = 0; n < RECOVERY_AVERAGE_LENGTH; n++)
+          {
+              recHolder = recBuffer[n];
+              recBuffer[n] = recHolder2;
+              recHolder2 = recHolder;
+          }
+          recBuffer[0] = imu_struct.barometro[1];
+          for (int n = 0; n < RECOVERY_AVERAGE_LENGTH; n++)
+          {
+              barometerFiltered += recBuffer[n];
+          }
+          imu_struct.barometro[1] = barometerFiltered/RECOVERY_AVERAGE_LENGTH;
+          barometerFiltered = 0;
+          //End of MA code
+
+          //Recovery code incrementing the recCounter
+          if (lastAltitude - imu_struct.barometro[1] > recThreshold)
+          {
+              recCount++;
+              //Serial.print("recCount was activated and is in number :");Serial.println(recCount);
+          }
+          else
+          {
+            recCount = 0;
+          }
+          //
     }
     DEBUG_MAINLOOP_PRINT(2);
 
@@ -252,12 +293,16 @@ void loop()
     DEBUG_MAINLOOP_PRINT(5);
 
     //---------------Recuperação---------------//
+  //if (((abs(imu_struct.acelerometro[0]) < 1) && (abs(imu_struct.acelerometro[1]) < 1) && (abs(imu_struct.acelerometro[2]) < 1)) && (lastAltitude - imu_struct.barometro[1] > recThreshold))
+  if (recCount == REC_COUNT_NEEDED)
+  {
+      digitalWrite(2, HIGH);
+      recoveryActivated = 1;
+      DEBUG_PRINT("Recovery Activated!");
+      recCount = 0;
+      pmmErrorsAndSignals.reportRecuperation(packetIDul, sdIsWorking, rfIsWorking);
+  }
 
-    if (((abs(imu_struct.acelerometro[0]) < 1) && (abs(imu_struct.acelerometro[1]) < 1) && (abs(imu_struct.acelerometro[2]) < 1)))
-    {
-        DEBUG_PRINT("RECUPERATION ACTIVATED!");
-        pmmErrorsAndSignals.reportRecuperation(packetIDul, sdIsWorking, rfIsWorking);
-    }
 
     //---------------GPS Venus---------------//
 
