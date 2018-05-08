@@ -26,7 +26,7 @@ typedef enum {
 class PmmErrorsAndSignals
 {
 private:
-    SdManager mSdManager;
+    SdManager *mSdManager;
     RH_RF95 *mRf95Ptr; // Pointer to the RF object
     pmmErrorType mErrorsArray[ERRORS_ARRAY_SIZE]; // Total erros in the system
     int mActualNumberOfErrors; // Total errors in the system number
@@ -38,11 +38,13 @@ private:
 
 public:
     PmmErrorsAndSignals();
-    void init(RH_RF95 *rf95Ptr, uint16_t fileID);
+    void init(SdManager *sdManager, RH_RF95 *rf95Ptr, uint16_t fileID);
     void updateLedsAndBuzzer();
     void reportError(pmmErrorType errorID, unsigned long packetID, int sdIsWorking, int rfIsWorking);
     void reportRecuperation(unsigned long packetID, int sdIsWorking, int rfIsWorking);
+    void generalMessage(char *string, unsigned long packetID, int sdIsWorking, int rfIsWorking);
     void blinkRfLED(int state);
+    int returnNumberOfErrors();
 };
 
 #endif

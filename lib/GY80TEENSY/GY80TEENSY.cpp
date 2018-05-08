@@ -45,7 +45,7 @@ int GetMag(IMU_s *imu) {
 int GetBMP(IMU_s *imu) {
     sensors_event_t event;
     float temperature;
-    float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
+    float seaLevelPressure = 1020;
 
     bmp.getEvent(&event);
     bmp.getTemperature(&temperature);

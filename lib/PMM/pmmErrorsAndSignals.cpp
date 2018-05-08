@@ -38,14 +38,14 @@ PmmErrorsAndSignals::PmmErrorsAndSignals()
 }
 
 // Initializer
-void PmmErrorsAndSignals::init(RH_RF95 *rf95Ptr, uint16_t fileID)
+void PmmErrorsAndSignals::init(SdManager *sdManager, RH_RF95 *rf95Ptr, uint16_t fileID)
 {
     // Init variables values
+    mSdManager = sdManager;
     mRf95Ptr = rf95Ptr;
     mActualNumberOfErrors = 0;
     snprintf(mFilenameExtra, FILENAME_MAX_LENGTH, "%s%03u%s", FILENAME_BASE_PREFIX, fileID, FILENAME_EXTRA_SUFFIX); // Declaration of the filename of the extra log
 
-    mSdManager.init();
     void setFilename(char *mFilenameExtra);
 
     mSystemWasOk = mIsShortBeepOfSystemWasOk = 1; mSignalIsOn = mSignalStarterCounter = mSignalActualErrorIndex = mSignalActualErrorCounter = 0;
@@ -186,7 +186,7 @@ void PmmErrorsAndSignals::reportError(pmmErrorType errorId, unsigned long packet
     if (mActualNumberOfErrors < ERRORS_ARRAY_SIZE)
         mErrorsArray[mActualNumberOfErrors++] = errorId;
     if (sdIsWorking)
-        mSdManager.writeToFile(errorString + 4); // +4 to skip the MNEX header
+        mSdManager->writeStringToFilename(mFilenameExtra, errorString + 4); // +4 to skip the MNEX header
     if (rfIsWorking)
         mRf95Ptr->send((uint8_t*)errorString, strlen(errorString)); // \0 isn't sent.
 }
@@ -198,13 +198,27 @@ void PmmErrorsAndSignals::reportRecuperation(unsigned long packetID, int sdIsWor
     snprintf(recuperationString, ERROR_STRING_LENGTH, "%s[%lu;%.3fs %s]", RF_VALIDATION_HEADER_EXTRA, packetID, millis() / 1000.0, recuperationActivatedString);
     digitalWrite(PIN_LED_RECOVERY, HIGH);
     if (sdIsWorking)
-        mSdManager.writeToFile(recuperationString + 4); // +4 to skip the MNEX header
+        mSdManager->writeStringToFilename(mFilenameExtra, recuperationString + 4); // +4 to skip the MNEX header
     if (rfIsWorking)
         mRf95Ptr->send((uint8_t*)recuperationString, strlen(recuperationString)); // \0 isn't sent.
-
 }
+void PmmErrorsAndSignals::generalMessage(char *string, unsigned long packetID, int sdIsWorking, int rfIsWorking)
+{
+    char customString[ERROR_STRING_LENGTH];
+    snprintf(customString, ERROR_STRING_LENGTH, "%s[%lu;%.3fs %s]", RF_VALIDATION_HEADER_EXTRA, packetID, millis() / 1000.0, string);
+    if (sdIsWorking)
+        mSdManager->writeStringToFilename(mFilenameExtra, customString + 4); // +4 to skip the MNEX header
+    if (rfIsWorking)
+        mRf95Ptr->send((uint8_t*)customString, strlen(customString)); // \0 isn't sent.
+}
+
 void PmmErrorsAndSignals::blinkRfLED(int state)
 {
     if (!mActualNumberOfErrors)
         digitalWrite(PIN_LED_ALL_OK_AND_RF, state);
+}
+
+int PmmErrorsAndSignals::returnNumberOfErrors()
+{
+    return mActualNumberOfErrors;
 }

@@ -1,7 +1,7 @@
 #ifndef PMM_CONST_h
 #define PMM_CONST_h
 
-#define DEBUG_SERIAL 1
+#define DEBUG_SERIAL 0
 
 #if DEBUG_SERIAL
     #define DEBUG_PRINT(x) Serial.println(x)
@@ -25,7 +25,7 @@
 #define RF_WORDS_IN_PACKET 24
 #define RF_BYTES_IN_PACKET (RF_WORDS_IN_PACKET * 4)
 #define RF_INIT_MAX_TRIES 20
-const char RF_VALIDATION_HEADER[4] = {'V', 'R', 'N', 'M'}; // Make sure that there is no NULL-terminator char. This one is inverted, as it will sent inverted (little-endian).
+ // Make sure that there is no NULL-terminator char. This one is inverted, as it will sent inverted (little-endian).
 const char RF_VALIDATION_HEADER_EXTRA[5] = {"MNEX"};
 
 //--------------- LEDS ---------------//
@@ -34,7 +34,7 @@ const char RF_VALIDATION_HEADER_EXTRA[5] = {"MNEX"};
 #define PIN_LED_ALL_OK_AND_RF 4 // Green
 
 //-------------- Buzzer --------------//
-#define BUZZER_ACTIVATED 0
+#define BUZZER_ACTIVATED 1
 #define BUZZER_PIN  2
 
 // -------------- GPS ----------------//

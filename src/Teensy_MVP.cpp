@@ -60,6 +60,7 @@ PmmErrorsAndSignals pmmErrorsAndSignals;
 float packetTimeFloatS = 0, packetIDfloat = 0;
 unsigned long packetTimeMs = 0, packetIDul = 0;
 RH_RF95 rf95(PIN_RFM95_CS, PIN_RFM95_INT);
+RH_RF95 *prf95 = &rf95;
 
 //--------------- GPS Venus Vars---------------//
 GpsManager gpsManager;
@@ -69,7 +70,7 @@ Gps_structType gps_struct;
 SdManager sdManager;
 char logString[LOG_BUFFER_LENGTH];
 int32_t logStringLength;
-char SD_LOG_HEADER[] = {"sep =, \nPacketID, Time(ms), Latitude, Longitude, Altitude GPS (m), Horizontal Velocity (m/s), North Velocity (m/s), East Velocity (m/s), Up Velocity (m/s), Heading Degree (°), Satellites, Pressure (hPa), Altitude (m), Temperature (°C), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (rad/s), GyroY (rad/s), GyroZ (rad/s), MagnetoX (uT/s), MagnetoY (uT/s), MagnetoZ (uT/s)"}; //This line handles Excel CSV configuration.
+char SD_LOG_HEADER[] = {"sep =, \nPacketID, Time(ms), Latitude, Longitude, Altitude GPS (m), Horizontal Velocity (m/s), North Velocity (m/s), East Velocity (m/s), Up Velocity (m/s), Heading Degree (°), Satellites, Pressure (hPa), Altitude (m), Temperature (°C), AcelX (m/s²), AcelY (m/s²), AcelZ (m/s²), GyroX (deg/s), GyroY (deg/s), GyroZ (deg/s), MagnetoX (uT/s), MagnetoY (uT/s), MagnetoZ (uT/s)"}; //This line handles Excel CSV configuration.
 
 //------------ IMU Struct Declaration ------------//
 IMU_s imu_struct;
@@ -92,6 +93,8 @@ int recLevel = 0; //Variable for next step in code, using recursion for recovery
 float recBuffer[RECOVERY_AVERAGE_LENGTH]; //Array holding the barometer values for the moving average code
 
 // An array of pointers. 17 variables of 4 bytes.
+
+char RF_VALIDATION_HEADER[4] = {'M', 'N', 'R', 'V'};
 
 uint8_t *rf_radioPacket[RF_BYTES_IN_PACKET] =
 {
@@ -127,7 +130,7 @@ void setup()
 {
     #if DEBUG_SERIAL
         Serial.begin(250000); //Initialize Serial Port at 9600 baudrate.
-        while (!Serial); // wait for serial port to connect. Needed for native USB port only
+        // while (!Serial); // wait for serial port to connect. Needed for native USB port only
     #endif
 
 // SETUP SD //
@@ -150,7 +153,7 @@ void setup()
 
 // SETUP SD END //
 
-    pmmErrorsAndSignals.init(&rf95, fileId);
+    pmmErrorsAndSignals.init(&sdManager, prf95, fileId);
 
 // ---- GPS
     gpsManager.init();
@@ -233,6 +236,11 @@ void setup()
         DEBUG_PRINT("MAGNETOMETER INIT ERROR");
         pmmErrorsAndSignals.reportError(ERROR_MAGNETOMETER_INIT, 0, sdIsWorking, rfIsWorking);
     }
+    if (!pmmErrorsAndSignals.returnNumberOfErrors())
+    {
+        char customString[] = "Init success!";
+        pmmErrorsAndSignals.generalMessage(customString, 0, sdIsWorking, rfIsWorking);
+    }
 //END of Setup  ---------------------------------------------------------------------------------------------------------//
 }
 
@@ -293,16 +301,22 @@ void loop()
     DEBUG_MAINLOOP_PRINT(5);
 
     //---------------Recuperação---------------//
-  //if (((abs(imu_struct.acelerometro[0]) < 1) && (abs(imu_struct.acelerometro[1]) < 1) && (abs(imu_struct.acelerometro[2]) < 1)) && (lastAltitude - imu_struct.barometro[1] > recThreshold))
-  if (recCount == REC_COUNT_NEEDED)
+  if (((abs(imu_struct.acelerometro[0]) < 1) && (abs(imu_struct.acelerometro[1]) < 1) && (abs(imu_struct.acelerometro[2]) < 1)) && (lastAltitude - imu_struct.barometro[1] > recThreshold))
   {
-      digitalWrite(2, HIGH);
+      digitalWrite(1, HIGH);
       recoveryActivated = 1;
       DEBUG_PRINT("Recovery Activated!");
       recCount = 0;
       pmmErrorsAndSignals.reportRecuperation(packetIDul, sdIsWorking, rfIsWorking);
   }
-
+  if (recCount == REC_COUNT_NEEDED)
+  {
+      digitalWrite(1, HIGH);
+      recoveryActivated = 1;
+      DEBUG_PRINT("Recovery Activated!");
+      recCount = 0;
+      pmmErrorsAndSignals.reportRecuperation(packetIDul, sdIsWorking, rfIsWorking);
+  }
 
     //---------------GPS Venus---------------//
 

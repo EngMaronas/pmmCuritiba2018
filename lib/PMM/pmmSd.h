@@ -19,6 +19,8 @@ public:
     int init();
     void setFilename(char *filename);
     int setFilenameAutoId(const char* baseName, const char* suffix);
+    int writeToFilename(char *filename, char *arrayToWrite, int32_t length);
+    int writeStringToFilename(char *filename, char *arrayToWrite);
     int writeToFile(char *arrayToWrite, int32_t length);
     int writeToFile(char *arrayToWrite);
     bool sdBusy();

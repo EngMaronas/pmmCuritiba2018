@@ -82,6 +82,42 @@ int SdManager::writeToFile(char *arrayToWrite, int32_t length)
     return 0;
 }
 
+int SdManager::writeToFilename(char *filename, char *arrayToWrite, int32_t length)
+{
+    if (!mFile.open(filename, O_RDWR | O_CREAT | O_APPEND)) // Read and write, create path if doesnt exist. http://man7.org/linux/man-pages/man2/open.2.html
+    {
+        mFile.close();
+        return 1;
+    }
+    if (length != mFile.write(arrayToWrite, length))
+    {
+        mFile.close();
+        return 2;
+    }
+    mFile.close();
+    return 0;
+}
+
+int SdManager::writeStringToFilename(char *filename, char *arrayToWrite)
+{
+    int32_t length;
+    if (!mFile.open(filename, O_RDWR | O_CREAT | O_APPEND)) // Read and write, create path if doesnt exist. http://man7.org/linux/man-pages/man2/open.2.html
+    {
+        mFile.close();
+        return 1;
+    }
+
+    length = strlen(arrayToWrite);
+    if (length != mFile.write(arrayToWrite, length))
+    {
+        mFile.close();
+        return 2;
+    }
+
+    mFile.close();
+    return 0;
+}
+
 int SdManager::writeToFile(char *arrayToWrite)
 {
     int32_t length;

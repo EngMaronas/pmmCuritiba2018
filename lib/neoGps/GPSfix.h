@@ -136,7 +136,7 @@ public:
     float  velocity_downF() const { return velocity_down/100.0; };
     void calculateNorthAndEastVelocityFromSpeedAndHeading()
     {
-        Serial.print("validHeading = "); Serial.print(valid.heading);Serial.print("; validSpeed = "); Serial.print(valid.speed) ;Serial.print("; validVelNed = ");Serial.println(valid.velned);
+        //Serial.print("validHeading = "); Serial.print(valid.heading);Serial.print("; validSpeed = "); Serial.print(valid.speed) ;Serial.print("; validVelNed = ");Serial.println(valid.velned);
         if (valid.heading && valid.speed)
         {
             float headingInRad      = heading() * NeoGPS::Location_t::RAD_PER_DEG;
@@ -145,8 +145,8 @@ public:
             velocity_north = speed_meter_per_s * cos (headingInRad);
             velocity_east  = speed_meter_per_s * sin (headingInRad);
 
-            Serial.print("Heading in RAD : "); Serial.print(headingInRad); Serial.print("; SpeedMps : "); Serial.print(speed_meter_per_s);
-            Serial.print("SpeedNorth : "); Serial.print(velocity_north); Serial.print("; SpeedEast : "); Serial.println(velocity_east);
+            //Serial.print("Heading in RAD : "); Serial.print(headingInRad); Serial.print("; SpeedMps : "); Serial.print(speed_meter_per_s);
+            //Serial.print("SpeedNorth : "); Serial.print(velocity_north); Serial.print("; SpeedEast : "); Serial.println(velocity_east);
             // velocity_down has already been set.
 
         }

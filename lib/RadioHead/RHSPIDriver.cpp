@@ -95,9 +95,9 @@ void RHSPIDriver::spiBurstWriteArrayOfPointersOf4Bytes(uint8_t reg, uint8_t** sr
     while (number4BytesVariables--)
     {
        _spi.transfer(**src);
-       _spi.transfer(*(*src)+1);
-       _spi.transfer(*(*src)+2);
-       _spi.transfer(*(*src++)+3);
+       _spi.transfer(*((*src)+1));
+       _spi.transfer(*((*src)+2));
+       _spi.transfer(*((*src++)+3));
     }
     digitalWrite(_slaveSelectPin, HIGH);
     _spi.endTransaction();
